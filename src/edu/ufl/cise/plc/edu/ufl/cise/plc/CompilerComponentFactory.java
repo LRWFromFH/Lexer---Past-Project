@@ -3,6 +3,8 @@ package edu.ufl.cise.plc;
 //This class eliminates hard coded dependencies on the actual Lexer class.  You can call your lexer whatever you
 //want as long as it implements the ILexer interface and you have provided an appropriate body for the getLexer method.
 
+import edu.ufl.cise.plc.Lexer;
+import edu.ufl.cise.plc.ILexer;
 
 public class CompilerComponentFactory {
 	

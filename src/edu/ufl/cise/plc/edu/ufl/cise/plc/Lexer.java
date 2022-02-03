@@ -7,7 +7,6 @@ import edu.ufl.cise.plc.IToken.Kind;
 public class Lexer implements ILexer {
 	
 	List<Token> tokenList;
-	State state; //State machine for the lexer.
 	int index; //Keeps track of where lexer is in list.
 	int line;
 	int col;
@@ -19,7 +18,6 @@ public class Lexer implements ILexer {
 	//This string is the raw input of the program.
 	public Lexer(String input) {
 		tokenList = new ArrayList<>();
-		state = State.START;
 		line = 0;
 		col = 0;
 		fullText = input;

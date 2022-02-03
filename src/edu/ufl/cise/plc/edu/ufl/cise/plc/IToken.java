@@ -1,13 +1,11 @@
 package edu.ufl.cise.plc;
 
-import edu.ufl.cise.plc.IToken.Kind;
-
 public interface IToken {
 	
     public record SourceLocation(int line, int column) {}  
 
 	public static enum Kind {
-		IDENT, 
+		IDENT,
 		INT_LIT, 
 		FLOAT_LIT, 
 		STRING_LIT, 
