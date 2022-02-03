@@ -109,6 +109,30 @@ public class LexerTests {
 		checkToken(lexer.next(), Kind.LARROW, 1,2);
 		checkEOF(lexer.next());
 	}
+
+	@Test
+	void testIfBlock() throws LexicalException{
+		String input = """
+				if(temp=="Hello")[
+					i = 3;
+				]
+				""";
+		show(input);
+		ILexer lexer = getLexer(input);
+		checkToken(lexer.next(),Kind.KW_IF, 0,0);
+		checkToken(lexer.next(),Kind.LPAREN, 0,2);
+		checkToken(lexer.next(),Kind.IDENT, 0,3);
+		checkToken(lexer.next(),Kind.EQUALS, 0,7);
+		checkToken(lexer.next(),Kind.STRING_LIT, 0,9);
+		checkToken(lexer.next(),Kind.RPAREN, 0,16);
+		checkToken(lexer.next(),Kind.LSQUARE, 0,17);
+		checkToken(lexer.next(),Kind.IDENT, 1,4);
+		checkToken(lexer.next(),Kind.ASSIGN, 1,6);
+		checkToken(lexer.next(),Kind.INT_LIT, 1,8);
+		checkToken(lexer.next(),Kind.SEMI, 1,9);
+		checkToken(lexer.next(),Kind.RSQUARE, 2,0);
+		checkEOF(lexer.next());
+	}
 	
 	//comments should be skipped
 	@Test

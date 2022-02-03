@@ -234,6 +234,7 @@ public class Lexer implements ILexer {
 			}
 			if(temp == '"' && esc == false) {
 				raw += '"';
+				col++;
 				break;
 			}
 
@@ -260,6 +261,8 @@ public class Lexer implements ILexer {
 			raw += fullText.charAt(i);
 		}
 
+		//Properly set col
+		col += (i - tokenCol);
 		//This is a special case Literal.
 		tokenList.add(new Token(Kind.STRING_LIT, raw, clean, tokenLine, tokenCol));
 	}
