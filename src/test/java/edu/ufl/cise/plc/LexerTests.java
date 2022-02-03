@@ -169,7 +169,24 @@ public class LexerTests {
 		checkIdent(lexer.next(), "b",0,8);
 		checkEOF(lexer.next());
 		}
-	
+
+	@Test
+	public void testTypeIdenInt() throws LexicalException {
+		String input = """
+				int a123 456b 
+				void 00
+				""";
+		show(input);
+		ILexer lexer = getLexer(input);
+		checkToken(lexer.next(), Kind.TYPE, 0,0);
+		checkIdent(lexer.next(), "a123", 0,4);
+		checkInt(lexer.next(), 456, 0,9);
+		checkIdent(lexer.next(), "b",0,12);
+		checkToken(lexer.next(), Kind.KW_VOID, 1, 0);
+		checkInt(lexer.next(), 0,1,5);
+		checkInt(lexer.next(), 0,1,6);
+		checkEOF(lexer.next());
+	}
 	
 	//example showing how to handle number that are too big.
 	@Test

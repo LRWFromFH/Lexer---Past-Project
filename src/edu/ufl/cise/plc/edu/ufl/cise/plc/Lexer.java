@@ -22,7 +22,7 @@ public class Lexer implements ILexer {
 	
 	//This string is the raw input of the program.
 	public Lexer(String input) {
-		tokenList = new ArrayList<Token>();
+		tokenList = new ArrayList<>();
 		state = State.START;
 		escape = false;
 		line = 0;
@@ -37,7 +37,7 @@ public class Lexer implements ILexer {
 	}
 	
 	private void lex(String input) {
-		if(input != "") {
+		if(input.equals("")) {
 			for(i = 0; i < fullLen; i++) {
 				Tokenize(fullText.charAt(i));
 			}
@@ -135,7 +135,7 @@ public class Lexer implements ILexer {
 			}
 			//'b'|'t'|'n'|'f'|'r'|'"'|' ' '|'\'
 			else if(!(temp == 'b' || temp == 't' || temp == 'n' || temp == 'f'
-					|| temp == 'r' || temp == '"' || temp == '\'' || temp == '\\') 
+					|| temp == 'r' || temp == '"' || temp == '\'' || temp == '\\')
 					&& esc) {
 				esc = false;
 			}
@@ -184,13 +184,14 @@ public class Lexer implements ILexer {
 		if(i+1 < fullLen) { //Check if not at end of file.
 			if(fullText.charAt(i+1) == '.'){ //If decimal.
 				NumLit();
+				return;
 			}
 		}
-		else{	
-			raw += fullText.charAt(i);
-			col++;
-			createToken(Kind.INT_LIT, tokenLine, tokenCol);
-		}		
+
+		raw += fullText.charAt(i);
+		col++;
+		createToken(Kind.INT_LIT, tokenLine, tokenCol);
+
 	}
 
 	private void Ident() {
@@ -211,7 +212,7 @@ public class Lexer implements ILexer {
 			}
 		}
 
-		Kind k; //Hold type for generic function call.
+		Kind k = Kind.IDENT; //Hold type for generic function call.
 
 		//HERE WOULD BE A GOOD TIME TO CHECK FOR KEYWORDS.
 		switch (raw) {
@@ -226,9 +227,9 @@ public class Lexer implements ILexer {
 			case "fi" -> k = Kind.KW_FI;
 			case "else" -> k = Kind.KW_ELSE;
 			case "write" -> k = Kind.KW_WRITE;
-			default -> System.out.println("Parameter is unknown");
-		};
-		createToken(Kind.IDENT, tokenLine, tokenCol);
+			//default -> System.out.println("Parameter is unknown");
+		}
+		createToken(k, tokenLine, tokenCol);
 	}
 	
 	private void NumLit() {
@@ -258,173 +259,9 @@ public class Lexer implements ILexer {
 		}
 		createToken(tokKind, tokenLine, tokenCol);
 	}
-	
-	/*
-	private void Start(char input) {
-		/* --- BEGIN START --- */
-		/*raw = "";
-		ident = false;
-		if(input == '"') { //String Start
-			state = State.STRING;
-			//Do not add input to string.
-			return;
-		}
-		//A-Z && a-z && $ && _
-		else if((input >= 65 && input <= 90) || (input >= 97 && input <= 122) ||
-				input == '_' || input == '$') {
-			state = State.IDENT; //Can be treated as IDENT beginning.
-			ident = true;
-		}
-		//Numbers 1-9
-		else if(input >= 49 && input <= 57) {
-			state = State.NUMBER; //Always a NUM lit.
-		}
-		else if(input == 48){
-			state = State.ZERO;
-		}
-		else if(input == '#') {
-			state = State.COMMENT;
-		}
-		
-		col = curCol; //Set the start position.
-		curCol++; //Increment current column.
-	}*/
-	
+
 	private void EOF() {
 		tokenList.add(new Token(Kind.EOF));
-	}
-
-	
-	private void checkVal(char input) {	
-		//ANY RESET SHOULD GENERATE A TOKEN.
-		
-		//If we are not in a comment or string and find a white space, then reset.
-		if((state != State.STRING) || (state != State.COMMENT) && (input == ' ' ||
-				input == '\t' || input == '\r' || input == '\n')) {
-			if(input == '\r' || input == '\n') { //New Line chars.
-				curLine++;
-				curCol = 0; //Reset column.
-			}
-			else {
-				curCol++;
-			}
-			state = State.START;
-			return;
-		}
-		//Check current state and determine what to do.
-		switch(state) {
-			case START: //White space should reset to here.
-				/* --- BEGIN START --- */
-				raw = "";
-				//ident = false;
-				if(input == '"') { //String Start
-					state = State.STRING;
-					//Do not add input to string.
-					return;
-				}
-				//A-Z && a-z && $ && _
-				else if((input >= 65 && input <= 90) || (input >= 97 && input <= 122) ||
-						input == '_' || input == '$') {
-					state = State.IDENT; //Can be treated as IDENT beginning.
-					//ident = true;
-				}
-				//Numbers 1-9
-				else if(input >= 49 && input <= 57) {
-					state = State.NUMBER; //Always a NUM lit.
-				}
-				else if(input == 48){
-					state = State.ZERO;
-				}
-				else if(input == '#') {
-					state = State.COMMENT;
-				}
-				else if(input == '.') { //This is not valid input
-					state = State.DECIMAL;
-				}
-				
-				col = curCol; //Set the start position.
-				curCol++; //Increment current column.
-				
-				break; 
-				/* --- END OF START --- */
-			case STRING:
-				/* --- BEGIN STRING --- */
-				if(input == '"' && escape != true) {
-					state = State.START;
-					//GENERATE TOKEN
-					//Do not add input to string.
-					return;
-				}
-				else if(input == '"' && escape == true) {
-					escape = false;
-				}
-				
-				break;
-				/* --- END OF STRING ---*/
-			case COMMENT:
-				if(input == '\r' || input == '\n') {
-					state = State.NEWLINE;
-					//GENERATE TOKEN
-					checkVal(input);
-					return;
-				}
-			case DECIMAL:
-				/* If we find anything other than a number:
-				 * 1: Reset
-				 * 2: Call yourself again
-				 * 3: return back to loop. */
-				
-				if(!(input >= 48 && input <= 57)) {
-					state = State.START;
-					checkVal(input);
-					return;
-				}
-				break;
-			case IDENT:
-				//Anything other than A-Z & a-z & 0-9
-				if(!((input >= 65 && input <= 90) || (input >= 97 && input <= 122) || 
-						(input >= 48 && input <= 57) || input == '_' || input == '$')) {
-					state = State.START;
-					//GENERATE TOKEN.
-					//ident = false;
-				}
-				curCol++;
-				break;
-			case NUMBER:
-				//Check for Decimal
-				if(input == '.' ) {//&& ident != true) {
-					state = State.DECIMAL;
-				}
-				//Check for 0-9
-				else if(!(input >= 48 && input <= 57)) {
-					state = State.START;
-					//GENERATE TOKEN.
-				}
-				break;
-			case ZERO:
-				//Not Legal to have 00
-				if(input == '0') {
-					state = State.START;
-					//GENERATE TOKEN
-				}
-				if(input == '.') {
-					state = State.DECIMAL;
-				}
-				break;
-			case NEWLINE:
-				if(input == '\n' || input == '\r') {
-					curCol = 0;
-					col = 0;
-					line++;
-					curLine++;
-					return;
-				}
-			default:
-				break;
-			}
-		
-		//Add input to raw string.
-		raw += input;
 	}
 
 	@Override
