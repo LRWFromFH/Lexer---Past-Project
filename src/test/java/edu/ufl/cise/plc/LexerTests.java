@@ -11,11 +11,21 @@ import edu.ufl.cise.plc.IToken;
 import edu.ufl.cise.plc.IToken.Kind;
 import edu.ufl.cise.plc.LexicalException;
 
+import java.util.Arrays;
+
 
 public class LexerTests {
 
 	ILexer getLexer(String input){
 		 return edu.ufl.cise.plc.CompilerComponentFactory.getLexer(input);
+	}
+
+	String getASCII(String s) {
+		int[] ascii = new int[s.length()];
+		for (int i = 0; i != s.length(); i++) {
+			ascii[i] = s.charAt(i);
+		}
+		return Arrays.toString(ascii);
 	}
 	
 	//makes it easy to turn output on and off (and less typing than System.out.println)
@@ -80,13 +90,22 @@ public class LexerTests {
 	@Test
 	void testSingleChar0() throws LexicalException {
 		String input = """
-				+ 
-				- 	 
+				+-*/%[]()
+				-><-
 				""";
 		show(input);
 		ILexer lexer = getLexer(input);
 		checkToken(lexer.next(), Kind.PLUS, 0,0);
-		checkToken(lexer.next(), Kind.MINUS, 1,0);
+		checkToken(lexer.next(), Kind.MINUS, 0,1);
+		checkToken(lexer.next(), Kind.TIMES, 0,2);
+		checkToken(lexer.next(), Kind.DIV, 0,3);
+		checkToken(lexer.next(), Kind.MOD, 0,4);
+		checkToken(lexer.next(), Kind.LSQUARE, 0,5);
+		checkToken(lexer.next(), Kind.RSQUARE, 0,6);
+		checkToken(lexer.next(), Kind.LPAREN, 0,7);
+		checkToken(lexer.next(), Kind.RPAREN, 0,8);
+		checkToken(lexer.next(), Kind.RARROW, 1,0);
+		checkToken(lexer.next(), Kind.LARROW, 1,2);
 		checkEOF(lexer.next());
 	}
 	
@@ -156,6 +175,24 @@ public class LexerTests {
 		checkToken(lexer.next(),Kind.ASSIGN,0,7);
 		checkEOF(lexer.next());
 	}
+
+	@Test
+	public void testFloat0() throws LexicalException{
+		String input = """
+				0.0 
+				0.2 19.71 
+					420.69
+				""";
+		show(input);
+		ILexer lexer = getLexer(input);
+		checkToken(lexer.next(), Kind.FLOAT_LIT,0,0);
+		checkToken(lexer.next(), Kind.FLOAT_LIT,1,0);
+		checkToken(lexer.next(), Kind.FLOAT_LIT,1,4);
+		IToken token = lexer.next();
+		checkToken(token, Kind.FLOAT_LIT,2,4);
+		show(token.getFloatValue());
+		checkEOF(lexer.next());
+	}
 	
 	@Test
 	public void testIdenInt() throws LexicalException {
@@ -202,4 +239,38 @@ public class LexerTests {
 		});
 	}
 
+	@Test
+	public void testCommentEOF() throws LexicalException {
+		String input = """
+				#
+				"This is some text."
+				"This is an escape: \\r\\n\\t\\f \\"Hello, World!\\""
+				""";
+		ILexer lexer = getLexer(input);
+		checkToken(lexer.next(), Kind.STRING_LIT,1,0);
+		IToken token = lexer.next();
+		show(token.getStringValue());
+		show(token.getText());
+		checkToken(token, Kind.STRING_LIT,2,0);
+		checkToken(lexer.next(), Kind.EOF);
+	}
+
+	@Test
+	public void testEscapeSequences0() throws LexicalException {
+		String input = "\"\\b \\t \\n \\f \\r \"";
+		show(input);
+		show("input chars= " + getASCII(input));
+		ILexer lexer = getLexer(input);
+		IToken t = lexer.next();
+		String val = t.getStringValue();
+		show("getStringValueChars=     " + getASCII(val));
+		String expectedStringValue = "\b \t \n \f \r ";
+		show("expectedStringValueChars=" + getASCII(expectedStringValue));
+		assertEquals(expectedStringValue, val);
+		String text = t.getText();
+		show("getTextChars=     " +getASCII(text));
+		String expectedText = "\"\\b \\t \\n \\f \\r \"";
+		show("expectedTextChars="+getASCII(expectedText));
+		assertEquals(expectedText,text);
+	}
 }

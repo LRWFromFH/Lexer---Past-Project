@@ -14,6 +14,12 @@ public class Token implements IToken{
 	public Token(Kind kind) {
 		this.kind = kind;
 	}
+	public Token(Kind kind, String rawText, String cleanText, int line, int col){
+		this.kind = kind;
+		this.rawText = rawText;
+		this.cleanText = cleanText;
+		this.cleanText = cleanText.translateEscapes();
+	}
 	
 	public Token(Kind kind, String rawText, int line, int col) {
 		this.kind = kind;
@@ -28,6 +34,11 @@ public class Token implements IToken{
 		}
 		else if(kind == Kind.BOOLEAN_LIT){
 			boolVal = rawText.equals("true");
+		}
+		this.cleanText = this.rawText;
+		if(kind == Kind.STRING_LIT) {
+			cleanText = cleanText.translateEscapes();
+			cleanText = cleanText.substring(1, cleanText.length()-1);
 		}
 	}
 	
@@ -72,7 +83,7 @@ public class Token implements IToken{
 	@Override
 	public boolean getBooleanValue() {
 		// TODO Auto-generated method stub
-		return false;
+		return boolVal;
 	}
 
 	@Override

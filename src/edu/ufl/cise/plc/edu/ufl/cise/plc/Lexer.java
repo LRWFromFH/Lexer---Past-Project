@@ -11,25 +11,17 @@ public class Lexer implements ILexer {
 	int index; //Keeps track of where lexer is in list.
 	int line;
 	int col;
-	int curLine;
-	int curCol;
 	int i;
 	String fullText;
 	int fullLen;
 	String raw;
-	boolean escape;
-	//boolean ident;
 	
 	//This string is the raw input of the program.
 	public Lexer(String input) {
 		tokenList = new ArrayList<>();
 		state = State.START;
-		escape = false;
 		line = 0;
 		col = 0;
-		curLine = 0;
-		curCol = 0;
-		//boolean ident = false;
 		fullText = input;
 		fullLen = input.length();
 		//Run the length of the string.
@@ -37,7 +29,7 @@ public class Lexer implements ILexer {
 	}
 	
 	private void lex(String input) {
-		if(input.equals("")) {
+		if(!input.equals("")) {
 			for(i = 0; i < fullLen; i++) {
 				Tokenize(fullText.charAt(i));
 			}
@@ -76,53 +68,156 @@ public class Lexer implements ILexer {
 			Zero();
 		}
 		else if(input == '*'){
-			tokenList.add(new Token(Kind.TIMES));
+			//TODO: Adapt to createToken
+			// (eg. createToken(Kind.TIMES, "String", int ColumnIncrement))
+			//	None of these alone can create new lines.
+			tokenList.add(new Token(Kind.TIMES, String.valueOf(input), line, col));
+			col++;
 		}
 		else if(input == '+'){
-			tokenList.add(new Token(Kind.PLUS));
+			tokenList.add(new Token(Kind.PLUS, String.valueOf(input), line, col));
+			col++;
 		}
 		else if(input == '/'){
-			tokenList.add(new Token(Kind.DIV));
+			tokenList.add(new Token(Kind.DIV, String.valueOf(input), line, col));
+			col++;
 		}
 		else if(input == '%'){
-			tokenList.add(new Token(Kind.MOD));
+			tokenList.add(new Token(Kind.MOD, String.valueOf(input), line, col));
+			col++;
 		}
 		else if(input == '('){
-			tokenList.add(new Token(Kind.LPAREN));
+			tokenList.add(new Token(Kind.LPAREN, String.valueOf(input), line, col));
+			col++;
 		}
 		else if(input == ')'){
-			tokenList.add(new Token(Kind.RPAREN));
+			tokenList.add(new Token(Kind.RPAREN, String.valueOf(input), line, col));
+			col++;
 		}
 		else if(input == '['){
-			tokenList.add(new Token(Kind.LSQUARE));
+			tokenList.add(new Token(Kind.LSQUARE, String.valueOf(input), line, col));
+			col++;
 		}
 		else if(input == ']'){
-			tokenList.add(new Token(Kind.RSQUARE));
+			tokenList.add(new Token(Kind.RSQUARE, String.valueOf(input), line, col));
+			col++;
 		}
 		else if(input == '&'){
-			tokenList.add(new Token(Kind.AND));
+			tokenList.add(new Token(Kind.AND, String.valueOf(input), line, col));
+			col++;
 		}
 		else if(input == '|'){
-			tokenList.add(new Token(Kind.OR));
+			tokenList.add(new Token(Kind.OR, String.valueOf(input), line, col));
+			col++;
 		}
 		else if(input == ','){
-			tokenList.add(new Token(Kind.COMMA));
+			tokenList.add(new Token(Kind.COMMA, String.valueOf(input), line, col));
+			col++;
 		}
 		else if(input == ';'){
-			tokenList.add(new Token(Kind.SEMI));
+			tokenList.add(new Token(Kind.SEMI, String.valueOf(input), line, col));
+			col++;
 		}
 		else if(input == '^'){
-			tokenList.add(new Token(Kind.RETURN));
+			tokenList.add(new Token(Kind.RETURN, String.valueOf(input), line, col));
+			col++;
 		}
 		//
 		else{//This is an error
 			//For now this will be unimplemented junk.
+			if(!genericSymbol(input)){
+				tokenList.add(new Token(Kind.ERROR, "Symbol Unrecognized", line, col));
+			}
 
 		}
 		
 	}
-	
+
+	public boolean genericSymbol(char input){ //This returns true if handled.
+		if(i+1 < fullLen){
+			char temp = fullText.charAt(i+1);
+			if(input == '-'){
+				if(temp == '>'){
+					tokenList.add(new Token(Kind.RARROW, "->", line, col));
+					i++;
+					col++;
+				}
+				else{
+					tokenList.add(new Token(Kind.MINUS, "-", line, col));
+				}
+				col++;
+				return true;
+			}
+			else if(input == '<'){
+				if(temp == '<'){
+					tokenList.add(new Token(Kind.LANGLE, "<<", line, col));
+					i++;
+					col++;
+				}
+				else if(temp == '-'){
+					tokenList.add(new Token(Kind.LARROW, "<-", line, col));
+					i++;
+					col++;
+				}
+				else if(temp == '='){
+					tokenList.add(new Token(Kind.LE, "<=", line, col));
+					i++;
+					col++;
+				}
+				else{
+					tokenList.add(new Token(Kind.LT, "<", line, col));
+				}
+				col++;
+				return true;
+			}
+			else if(input == '>'){
+				if(temp == '>'){
+					tokenList.add(new Token(Kind.RANGLE, ">>", line, col));
+					i++;
+					col++;
+				}
+				else if(temp == '='){
+					tokenList.add(new Token(Kind.GE, ">=", line, col));
+					i++;
+					col++;
+				}
+				else{
+					tokenList.add(new Token(Kind.GT, ">", line, col));
+				}
+				col++;
+				return true;
+			}
+			else if(input == '!'){
+				if(temp == '='){
+					tokenList.add(new Token(Kind.NOT_EQUALS, "!=", line, col));
+					i++;
+					col++;
+				}
+				else{
+					tokenList.add(new Token(Kind.BANG, "!", line, col));
+				}
+				col++;
+				return true;
+			}
+			else if(input == '='){
+				if(temp == '='){
+					tokenList.add(new Token(Kind.EQUALS, "==", line, col));
+					i++;
+					col++;
+				}
+				else{
+					tokenList.add(new Token(Kind.ASSIGN, "=", line, col));
+				}
+				col++;
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 	private void StringLit() {
+		String clean = "";
 		raw += "\"";
 		int tokenCol = col;
 		int tokenLine = line;
@@ -130,23 +225,40 @@ public class Lexer implements ILexer {
 		i++; //Skip the first quotation mark.
 		for(; i < fullLen; i++) {
 			char temp = fullText.charAt(i);
-			if(temp == '\\') { //Regular Backslash.
+			if(temp == '\\'){
 				esc = true;
+				continue;
 			}
-			//'b'|'t'|'n'|'f'|'r'|'"'|' ' '|'\'
-			else if(!(temp == 'b' || temp == 't' || temp == 'n' || temp == 'f'
-					|| temp == 'r' || temp == '"' || temp == '\'' || temp == '\\')
-					&& esc) {
-				esc = false;
-			}
-			else if(temp == '"') {
+			if(temp == '"' && esc == false) {
+				raw += '"';
 				break;
+			}
+
+			if(esc){
+				switch(temp) {
+					// 'b'|'t'|'n'|'f'|'r'|'"'|' ' '|'\'
+					case 'b' -> {clean += '\b';}
+					case 't' -> {clean += '\t';}
+					case 'n' -> {clean += '\n';}
+					case 'f' -> {clean += '\f';}
+					case 'r' -> {clean += '\r';}
+					case '"' -> {clean += '\"';}
+					case 39  -> {clean += '\'';} //ASCII VAL
+					case '|' -> {clean += '\\';}
+				}
+				raw += fullText.charAt(i - 1);
+				raw += fullText.charAt(i);
+				esc = false;
+				continue;
+			}
+			if(fullText.charAt(i) != '"'){
+				clean += fullText.charAt(i);
 			}
 			raw += fullText.charAt(i);
 		}
-		
-		createToken(Kind.STRING_LIT, tokenLine, tokenLine);
 
+		//This is a special case Literal.
+		tokenList.add(new Token(Kind.STRING_LIT, raw, clean, tokenLine, tokenCol));
 	}
 	
 	private void Comment() {
@@ -159,6 +271,7 @@ public class Lexer implements ILexer {
 				break;
 			}
 		}
+		i--;
 	}
 	
 	private void Whitespace(char input) {
@@ -170,7 +283,7 @@ public class Lexer implements ILexer {
 			line++;
 		}
 		else if(input == '\t') {
-			col += 4;
+			col += 4; //The IDE references \t for cols as well.
 		}
 		else if(input == '\r') {
 			col = 0;
@@ -241,7 +354,7 @@ public class Lexer implements ILexer {
 		for(; i < fullLen;i++) {
 			char temp = fullText.charAt(i);
 			if(temp >= 48 && temp <= 57) {
-				raw += fullText.charAt(i);
+				raw += temp;
 				col++; //numLit will never change the line number.
 			}
 			else if(temp == '.' && decimal) {
@@ -250,6 +363,8 @@ public class Lexer implements ILexer {
 			}
 			else if(temp == '.') {
 				decimal = true;
+				raw += temp;
+				col++;
 				tokKind = Kind.FLOAT_LIT;
 			}
 			else {
@@ -257,6 +372,21 @@ public class Lexer implements ILexer {
 				break;
 			}
 		}
+
+		if(raw.length() >= 11){
+			tokKind = Kind.ERROR;
+			raw = "Number is too big!";
+		}
+		else if(raw.length() == 10){
+			try{
+				int test = Integer.parseInt(raw);
+			}
+			catch(NumberFormatException e){
+				tokKind = Kind.ERROR;
+				raw = "Number is too big!";
+			}
+		}
+
 		createToken(tokKind, tokenLine, tokenCol);
 	}
 
