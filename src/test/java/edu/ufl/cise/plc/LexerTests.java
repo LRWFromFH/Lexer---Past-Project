@@ -151,13 +151,19 @@ public class LexerTests {
 				abc
 				  def
 				     ghi
-
+				     true
+				     false getWidth
+				     LIGHT_GRAY
 				""";
 		show(input);
 		ILexer lexer = getLexer(input);
 		checkIdent(lexer.next(), "abc", 0,0);
 		checkIdent(lexer.next(), "def", 1,2);
 		checkIdent(lexer.next(), "ghi", 2,5);
+		checkToken(lexer.next(), Kind.BOOLEAN_LIT, 3, 5);
+		checkToken(lexer.next(), Kind.BOOLEAN_LIT, 4, 5);
+		checkToken(lexer.next(), Kind.IMAGE_OP, 4, 11);
+		checkToken(lexer.next(), Kind.COLOR_CONST, 5, 5);
 		checkEOF(lexer.next());
 	}
 	
@@ -230,7 +236,10 @@ public class LexerTests {
 	public void testIntTooBig() throws LexicalException {
 		String input = """
 				42
+				0.0
+				0.99999999999999999999999999999999999999999999
 				99999999999999999999999999999999999999999999999999999999999999999999999
+				54321
 				""";
 		ILexer lexer = getLexer(input);
 		checkInt(lexer.next(),42);

@@ -32,6 +32,11 @@ public class Lexer implements ILexer {
 		if(!input.equals("")) {
 			for(i = 0; i < fullLen; i++) {
 				Tokenize(fullText.charAt(i));
+				if(!tokenList.isEmpty()){
+					if(getLastToken().getKind() == Kind.ERROR){
+						break;
+					}
+				}
 			}
 			//Generate Last Token
 		}
@@ -340,6 +345,7 @@ public class Lexer implements ILexer {
 			case "fi" -> k = Kind.KW_FI;
 			case "else" -> k = Kind.KW_ELSE;
 			case "write" -> k = Kind.KW_WRITE;
+			case "true", "false" -> k = Kind.BOOLEAN_LIT;
 			//default -> System.out.println("Parameter is unknown");
 		}
 		createToken(k, tokenLine, tokenCol);
@@ -373,11 +379,7 @@ public class Lexer implements ILexer {
 			}
 		}
 
-		if(raw.length() >= 11){
-			tokKind = Kind.ERROR;
-			raw = "Number is too big!";
-		}
-		else if(raw.length() == 10){
+		if(tokKind == Kind.INT_LIT){
 			try{
 				int test = Integer.parseInt(raw);
 			}
@@ -386,12 +388,25 @@ public class Lexer implements ILexer {
 				raw = "Number is too big!";
 			}
 		}
+		else if(tokKind == Kind.FLOAT_LIT){
+			try{
+				float test = Float.parseFloat(raw);
+			}
+			catch (NumberFormatException e){
+				tokKind = Kind.ERROR;
+				raw = "Float invalid!";
+			}
+		}
 
 		createToken(tokKind, tokenLine, tokenCol);
 	}
 
 	private void EOF() {
 		tokenList.add(new Token(Kind.EOF));
+	}
+
+	private IToken getLastToken(){
+		return tokenList.get(tokenList.size()-1);
 	}
 
 	@Override
