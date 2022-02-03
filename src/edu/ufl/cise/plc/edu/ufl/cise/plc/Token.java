@@ -19,6 +19,8 @@ public class Token implements IToken{
 		this.rawText = rawText;
 		this.cleanText = cleanText;
 		this.cleanText = cleanText.translateEscapes();
+		this.line = line;
+		this.col = col;
 	}
 	
 	public Token(Kind kind, String rawText, int line, int col) {
