@@ -276,14 +276,16 @@ public class LexerTests {
 		String input = """
 				#
 				"This is some text."
-				"This is an escape: \\r\\n\\t\\f \\"Hello, World!\\""
+				"This is an escape: \\r\\n\\t\\f \\"Hello, World!\\"" "test" "Test"
+					"Another test"
 				""";
+		show(input);
 		ILexer lexer = getLexer(input);
 		checkToken(lexer.next(), Kind.STRING_LIT,1,0);
-		IToken token = lexer.next();
-		show(token.getStringValue());
-		show(token.getText());
-		checkToken(token, Kind.STRING_LIT,2,0);
+		checkToken(lexer.next(), Kind.STRING_LIT,2,0);
+		checkToken(lexer.next(), Kind.STRING_LIT,2,54);
+		checkToken(lexer.next(), Kind.STRING_LIT,2,61);
+		checkToken(lexer.next(), Kind.STRING_LIT,3,4);
 		checkToken(lexer.next(), Kind.EOF);
 	}
 

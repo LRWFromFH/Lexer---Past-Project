@@ -230,6 +230,7 @@ public class Lexer implements ILexer {
 			char temp = fullText.charAt(i);
 			if(temp == '\\'){
 				esc = true;
+				col++;
 				continue;
 			}
 			if(temp == '"' && esc == false) {
@@ -262,7 +263,7 @@ public class Lexer implements ILexer {
 		}
 
 		//Properly set col
-		col += (i - tokenCol);
+		col += raw.length() -1;
 		//This is a special case Literal.
 		tokenList.add(new Token(Kind.STRING_LIT, raw, clean, tokenLine, tokenCol));
 	}
