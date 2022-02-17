@@ -15,5 +15,13 @@ public class CompilerComponentFactory {
 			return new Lexer(input);
 		
 	}
+
+	public static IParser getParser(String input) throws PLCException {
+		//TODO:  modify this method so it returns an instance of your Lexer instead of throwing the exception.
+		//for example:
+		Lexer lex = new Lexer(input);
+		return new Parser(lex.getTokenList());
+
+	}
 	
 }

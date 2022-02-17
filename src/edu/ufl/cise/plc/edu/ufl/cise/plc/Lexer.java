@@ -25,6 +25,10 @@ public class Lexer implements ILexer {
 		//Run the length of the string.
 		lex(fullText);
 	}
+
+	public List<Token> getTokenList(){
+		return tokenList;
+	}
 	
 	private void lex(String input) {
 		if(!input.equals("")) {
