@@ -139,7 +139,7 @@ public class LexerTests {
 	void testComment0() throws LexicalException {
 		//Note that the quotes around "This is a string" are passed to the lexer.  
 		String input = """
-				"This is a string"
+				"abc xyz"
 				#this is a comment
 				*
 				""";

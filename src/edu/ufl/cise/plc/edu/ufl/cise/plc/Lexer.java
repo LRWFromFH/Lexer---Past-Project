@@ -232,12 +232,12 @@ public class Lexer implements ILexer {
 		i++; //Skip the first quotation mark.
 		for(; i < fullLen; i++) {
 			char temp = fullText.charAt(i);
-			if(temp == '\\'){
+			if(temp == '\\' && !esc){
 				esc = true;
 				col++;
 				continue;
 			}
-			if(temp == '"' && esc == false) {
+			if(temp == '"' && !esc) {
 				raw += '"';
 				col++;
 				break;
@@ -253,7 +253,10 @@ public class Lexer implements ILexer {
 					case 'r' -> {clean += '\r';}
 					case '"' -> {clean += '\"';}
 					case 39  -> {clean += '\'';} //ASCII VAL
-					case '|' -> {clean += '\\';}
+					case 92 -> {clean += '\\';}
+					default -> {
+						tokenList.add(new Token(Kind.ERROR, raw, clean, tokenLine, tokenCol));
+					}//We tried to escape a character that was no good.
 				}
 				raw += fullText.charAt(i - 1);
 				raw += fullText.charAt(i);
@@ -264,6 +267,9 @@ public class Lexer implements ILexer {
 				clean += fullText.charAt(i);
 			}
 			raw += fullText.charAt(i);
+		}
+		if(raw.charAt(raw.length()-1) != '"'){
+			tokenList.add(new Token(Kind.ERROR, raw, clean, tokenLine, tokenCol));
 		}
 
 		//Properly set col
@@ -385,6 +391,9 @@ public class Lexer implements ILexer {
 			}
 		}
 
+
+
+
 		if(tokKind == Kind.INT_LIT){
 			try{
 				int test = Integer.parseInt(raw);
@@ -401,6 +410,13 @@ public class Lexer implements ILexer {
 			catch (NumberFormatException e){
 				tokKind = Kind.ERROR;
 				raw = "Float invalid!";
+			}
+		}
+		//Check for ending period
+		if(!raw.isEmpty()){
+			if(raw.charAt(raw.length()-1) == '.'){
+				tokKind = Kind.ERROR;
+				raw = "Float Invalid!";
 			}
 		}
 
