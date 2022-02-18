@@ -9,15 +9,16 @@ public class Parser implements IParser{
 
     IToken current; //Current token
     IToken lookahead; //One token ahead
-    ASTNode tree;
     List<Token> tokenList;
     int index;
+    boolean paren;
 
     public Parser(List<Token> tokenList){
         this.tokenList = tokenList;
         index = 0;
         current = null;
         lookahead = null;
+        paren = false;
         consume(); //Loads current and lookahead with values.
     }
 
@@ -81,22 +82,54 @@ public class Parser implements IParser{
         }*/
     }
 
+    private ASTNode BinEx() throws PLCException{
+
+
+        return null;
+    }
+
     private ASTNode BinaryExp() throws PLCException {
         ASTNode node = null;
+        IToken first = current;
         IToken op = lookahead;
-        lookahead = new Token(Kind.EOF); // Temporary change to call EXPR
-        ASTNode left = expr();
-        consume();
-        ASTNode right = expr();
-        node = new BinaryExpr(op,(Expr) left,op,(Expr) right);
-        return node;
+        ASTNode right = null;
+        //lookahead = new Token(Kind.EOF); // Temporary change to call EXPR
+        ASTNode left = primaryExpr();
+        while(true){
+            switch (current.getKind()){
+                case PLUS, MINUS, AND, OR -> {
+                    op = current;
+                    consume();
+                    right = expr();
+                    left = new BinaryExpr(first,(Expr) left, op,(Expr) right);
+                    node = left;
+                }
+                case MOD, TIMES, DIV, LT, LE, EQUALS, NOT_EQUALS, GT, GE -> {
+                    op = current;
+                    consume();
+                    //right = left;
+                    right = primaryExpr();
+                    right = new BinaryExpr(first, (Expr) left, op, (Expr) right);
+                    left = right;
+                    node = right;
+                }
+                default -> {return node;}
+
+
+            }
+        }
+        //consume();
+        //ASTNode right = expr();
+
+        //node = new BinaryExpr(first,(Expr) left,op,(Expr) right);
+        //return node;
     }
 
     private ASTNode BinaryExp(ASTNode left) throws  PLCException{
         ASTNode node = null;
         IToken op = lookahead;
-        consume();
-        consume();
+        consume(); // Symbol
+        consume(); // Op
         ASTNode right = expr();
         node = new BinaryExpr(op, (Expr) left, op, (Expr) right);
         return node;
@@ -154,7 +187,7 @@ public class Parser implements IParser{
         ASTNode node = null;
         if(lookahead.getKind() == Kind.TIMES || lookahead.getKind() == Kind.DIV ||
                 lookahead.getKind() == Kind.MOD){
-            BinaryExp();
+            node = BinaryExp();
         }
         else{
             node = unary();
@@ -171,14 +204,20 @@ public class Parser implements IParser{
             //We need to call consume and then check for unary again. Or we fall to unarypostfix
             op = current;
             consume();
-            IToken binaryOp = lookahead;
-            lookahead = new Token(Kind.EOF);
             ASTNode Exp = expr();
+            IToken binaryOp = lookahead;
+            //lookahead = new Token(Kind.EOF);
+            index--; //Push back so that binary left knows how to handle it.
+            index--; //Push back so that binary left knows how to handle it.
+            consume();
             node = new UnaryExpr(op,op,(Expr) Exp);
 
-            if(lookahead.getKind() == Kind.PLUS || lookahead.getKind() == Kind.MINUS ||
-                    lookahead.getKind() == Kind.TIMES || lookahead.getKind() == Kind.DIV ||
-                    lookahead.getKind() == Kind.MOD){
+            if(binaryOp.getKind() == Kind.PLUS || binaryOp.getKind() == Kind.MINUS ||
+                    binaryOp.getKind() == Kind.TIMES || binaryOp.getKind() == Kind.DIV ||
+                    binaryOp.getKind() == Kind.MOD || binaryOp.getKind() == Kind.LT ||
+                    binaryOp.getKind() == Kind.GT || binaryOp.getKind() == Kind.EQUALS ||
+                    binaryOp.getKind() == Kind.NOT_EQUALS || binaryOp.getKind() == Kind.LE ||
+                    binaryOp.getKind() == Kind.GE){
                 node = BinaryExp(node);
             }
 
@@ -213,7 +252,11 @@ public class Parser implements IParser{
 
             if(lookahead.getKind() == Kind.PLUS || lookahead.getKind() == Kind.MINUS ||
                     lookahead.getKind() == Kind.TIMES || lookahead.getKind() == Kind.DIV ||
-                    lookahead.getKind() == Kind.MOD){
+                    lookahead.getKind() == Kind.MOD || lookahead.getKind() == Kind.LT ||
+                    lookahead.getKind() == Kind.GT || lookahead.getKind() == Kind.EQUALS ||
+                    lookahead.getKind() == Kind.NOT_EQUALS || lookahead.getKind() == Kind.LE ||
+                    lookahead.getKind() == Kind.GE){
+                //LT,GT,EQUALS, NOT_EQUALS, LE, GE
                 node = BinaryExp(node);
             }
         }
@@ -228,18 +271,31 @@ public class Parser implements IParser{
         if(current.getKind() == Kind.LPAREN){
             //Expression
             consume(); //Get next token.
-            expr();
+            node = expr();
             if(current.getKind() != Kind.RPAREN){
-                throw new PLCException("");
+                throw new SyntaxException("Expected ')'", current.getSourceLocation());
             }
-        }
 
-        switch (current.getKind()){
-            case INT_LIT -> {node = intLit();}
-            case FLOAT_LIT -> {node = floatLit();}
-            case BOOLEAN_LIT -> {node = booleanLit();}
-            case IDENT -> {node = ident();}
-            case STRING_LIT -> {node = stringLit();}
+            if(lookahead.getKind() == Kind.PLUS || lookahead.getKind() == Kind.MINUS ||
+                    lookahead.getKind() == Kind.TIMES || lookahead.getKind() == Kind.DIV ||
+                    lookahead.getKind() == Kind.MOD || lookahead.getKind() == Kind.LT ||
+                    lookahead.getKind() == Kind.GT || lookahead.getKind() == Kind.EQUALS ||
+                    lookahead.getKind() == Kind.NOT_EQUALS || lookahead.getKind() == Kind.LE ||
+                    lookahead.getKind() == Kind.GE){
+                node = BinaryExp(node);
+            }
+
+            return node;
+        }
+        else{
+            switch (current.getKind()){
+                case INT_LIT -> {node = intLit();}
+                case FLOAT_LIT -> {node = floatLit();}
+                case BOOLEAN_LIT -> {node = booleanLit();}
+                case IDENT -> {node = ident();}
+                case STRING_LIT -> {node = stringLit();}
+                default -> throw new SyntaxException("Unknown Symbol", current.getSourceLocation());
+            }
         }
         consume();
 

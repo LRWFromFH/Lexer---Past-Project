@@ -144,21 +144,25 @@ class Assignment2StarterTests {
 	@Test
 	public void mytest5(TestInfo testInfo) throws Exception {
 		String input = """
-				-30 - 7
+				3+4*5
 				""";
 		show("-------------");
 		show(input);
 		Expr ast = (Expr) getAST(input);
 		show(ast);
 		assertThat("", ast, instanceOf(BinaryExpr.class));
-		assertEquals(MINUS, ((BinaryExpr) ast).getOp().getKind());
+		assertEquals(PLUS, ((BinaryExpr) ast).getOp().getKind());
 		Expr var1 = ((BinaryExpr) ast).getLeft();
 		//assertThat("", ast, instanceOf(UnaryExpr.class));
 		Expr var2 = ((BinaryExpr) ast).getRight();
-		assertThat("", var1, instanceOf(UnaryExpr.class));
-		assertEquals(MINUS,((UnaryExpr)var2).getOp());
-		assertThat("", var2, instanceOf(IntLitExpr.class));
-		assertEquals(7, ((IntLitExpr) var2).getValue());
+		assertThat("", var1, instanceOf(IntLitExpr.class));
+		assertEquals(3,((IntLitExpr)var1).getValue());
+		assertThat("", var2, instanceOf(BinaryExpr.class));
+		Expr var3 = ((BinaryExpr)var2).getLeft();
+		Expr var4 = ((BinaryExpr)var2).getRight();
+		assertEquals(4, ((IntLitExpr) var3).getValue());
+		assertEquals(TIMES, ((BinaryExpr) var2).getOp().getKind());
+		assertEquals(5, ((IntLitExpr) var4).getValue());
 	}
 
 	@DisplayName("test6")
