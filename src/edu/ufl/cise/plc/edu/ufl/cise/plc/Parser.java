@@ -29,6 +29,12 @@ public class Parser implements IParser{
         ASTNode node = null;
         List<NameDef> params = new ArrayList<>();
         List<ASTNode> decs = new ArrayList<>();
+        try{
+            validateType();
+        }
+        catch (IllegalArgumentException e){
+            throw new SyntaxException("Illegal return type", current.getSourceLocation());
+        }
         if(validateType() != null){
             String type = current.getText();
             consume(); //Eat Type
@@ -147,8 +153,9 @@ public class Parser implements IParser{
                 consume();//Eat Semi
             }
 
-        } catch (PLCException e) {
+        } catch (IllegalArgumentException e) {
             //This is either a statement or an error.
+            throw new SyntaxException("Invalid identifier.", current.getSourceLocation());
 
         }
 
@@ -264,7 +271,9 @@ public class Parser implements IParser{
         ASTNode right = null;
         ASTNode left = unary();
         while(current.getKind() == Kind.TIMES || current.getKind() == Kind.DIV
-                || current.getKind() == Kind.MOD){
+                || current.getKind() == Kind.MOD || current.getKind() == Kind.EQUALS
+        || current.getKind() == Kind.LT || current.getKind() == Kind.LE || current.getKind() == Kind.GT
+        || current.getKind() == Kind.GE || current.getKind() == Kind.NOT_EQUALS){
             op = current;
             consume();
             right = unary();
