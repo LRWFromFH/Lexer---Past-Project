@@ -65,13 +65,68 @@ public class Parser implements IParser{
         return node;
     }
 
-    private ASTNode Statement(){
-        return null;
+    private ASTNode Statement() throws PLCException{
+        IToken first = current;
+        ASTNode node = null;
+        IToken op;
+        if(current.getKind() == Kind.RETURN){
+            op = current;
+            consume();
+            node = expr();
+            node = new ReturnStatement(first,(Expr) node);
+        }
+        else if(current.getKind() == Kind.KW_WRITE){
+            op = current;
+            consume();
+            ASTNode source = expr();
+            ASTNode dest;
+            if(current.getKind() != Kind.RARROW){
+                throw new SyntaxException("Expected RARROW", current.getSourceLocation());
+            }
+            consume(); //Eat RARROW.
+            dest = expr();
+            node = new WriteStatement(first,(Expr) source, (Expr) dest);
+
+        }
+        else if(current.getKind() == Kind.IDENT){
+            ASTNode ident = unary();
+            PixelSelector selector = null;
+            if(ident instanceof UnaryExprPostfix){
+                selector = ((UnaryExprPostfix) ident).getSelector();
+            }
+            ASTNode val;
+            if(current.getKind() == Kind.ASSIGN || current.getKind() == Kind.LARROW){
+                op = current;
+                consume();
+                val = expr();
+            }
+            else{
+                throw new SyntaxException("Expected '=' or '<-'", current.getSourceLocation());
+            }
+            if(op.getKind() == Kind.ASSIGN){
+                node = new AssignmentStatement(first, ident.getText(), selector,(Expr) val);
+            }
+            if(op.getKind() == Kind.LARROW){
+                node = new ReadStatement(first, ident.getText(), selector,(Expr) val);
+            }
+        }
+        if(current.getKind() == Kind.SEMI){
+            consume();
+        }
+        else{
+            throw new SyntaxException("Expected ';'",current.getSourceLocation());
+        }
+
+        return node;
     }
 
     private ASTNode Declaration() throws PLCException{
         ASTNode node = null;
         IToken first = current;
+        if(current.getKind() == Kind.IDENT || current.getKind() == Kind.KW_WRITE
+                || current.getKind() == Kind.RETURN){
+            return Statement();
+        }
         try{
             node = nameDef();
             if(current.getKind() == Kind.ASSIGN || current.getKind() == Kind.LARROW){//Assign value
@@ -94,10 +149,7 @@ public class Parser implements IParser{
 
         } catch (PLCException e) {
             //This is either a statement or an error.
-            if(current.getKind() == Kind.IDENT || current.getKind() == Kind.KW_WRITE
-                    || current.getText() == "^"){
-                node = Statement();
-            }
+
         }
 
         return node;
