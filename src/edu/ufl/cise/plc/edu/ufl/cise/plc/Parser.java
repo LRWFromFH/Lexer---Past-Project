@@ -1,8 +1,10 @@
 package edu.ufl.cise.plc;
 
 import edu.ufl.cise.plc.ast.*;
+import edu.ufl.cise.plc.ast.Types;
 import edu.ufl.cise.plc.IToken.Kind;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class Parser implements IParser{
@@ -20,6 +22,127 @@ public class Parser implements IParser{
         lookahead = null;
         paren = false;
         consume(); //Loads current and lookahead with values.
+    }
+
+    private ASTNode Prog() throws PLCException{
+        IToken first = current;
+        ASTNode node = null;
+        List<NameDef> params = new ArrayList<>();
+        List<ASTNode> decs = new ArrayList<>();
+        if(validateType() != null){
+            String type = current.getText();
+            consume(); //Eat Type
+            if(current.getKind() != Kind.IDENT){
+                throw new SyntaxException("Program name must be a valid identifier!", current.getSourceLocation());
+            }
+            String name = current.getText();
+            consume(); // Eat Ident
+            if(current.getKind() != Kind.LPAREN){
+                throw new SyntaxException("Expected '('", current.getSourceLocation());
+            }
+            consume();//Consume LPAREN
+            while(current.getKind()!= Kind.RPAREN){
+                    params.add((NameDef) nameDef());
+                    if(current.getKind() == Kind.COMMA){
+                        consume();
+                    }
+            }
+            consume();//Eat RPAREN
+
+            //TODO: Statements and Declarations go here.
+            while(current.getKind() != Kind.EOF){
+                decs.add(Declaration());
+            }
+
+            Types.Type t = Types.Type.toType(type);
+            node = new Program(first, t, name, params, decs);
+
+        }
+        else{
+            throw new SyntaxException("Program must have return type.", current.getSourceLocation());
+        }
+
+        return node;
+    }
+
+    private ASTNode Statement(){
+        return null;
+    }
+
+    private ASTNode Declaration() throws PLCException{
+        ASTNode node = null;
+        IToken first = current;
+        try{
+            node = nameDef();
+            if(current.getKind() == Kind.ASSIGN || current.getKind() == Kind.LARROW){//Assign value
+                IToken op = current;
+                consume(); //Eat assign.
+                ASTNode e = expr();
+                if(current.getKind() == Kind.SEMI){
+                    node = new VarDeclaration(first, (NameDef) node, op,(Expr) e);
+                }
+                else{
+                    throw new SyntaxException("Expected ';'",current.getSourceLocation());
+                }
+                consume();//Eat Semi
+            }
+
+            else if(current.getKind() == Kind.SEMI){ //End Declaration
+                node = new VarDeclaration(first, (NameDef) node,null, null);
+                consume();//Eat Semi
+            }
+
+        } catch (PLCException e) {
+            //This is either a statement or an error.
+            if(current.getKind() == Kind.IDENT || current.getKind() == Kind.KW_WRITE
+                    || current.getText() == "^"){
+                node = Statement();
+            }
+        }
+
+        return node;
+    }
+
+    private ASTNode nameDef() throws PLCException{
+        NameDef node = null;
+
+        IToken first = current;
+        if(validateType() != null){
+            String type = current.getText();
+            consume(); //Eat the type
+            if(current.getKind() == Kind.LSQUARE){ //Same logic as a pixel selector
+                consume(); //Consume L Bracket
+                ASTNode x = expr(); //Get the value of x - This consumes.
+                if(current.getKind() != Kind.COMMA){
+                    throw new PLCException("Invalid Pixel Selector");
+                }
+                consume(); //Consume the comma
+                ASTNode y = expr(); //Get expression.
+                if(current.getKind() != Kind.RSQUARE){
+                    throw new PLCException("Invalid Pixel Selector");
+                }
+                consume(); //Eat the R Bracket.
+                if(current.getKind() == Kind.IDENT){
+                    Dimension dim = new Dimension(first,(Expr) x, (Expr) y);
+                    node = new NameDefWithDim(first,type, current.getText(), dim);
+                }
+            }
+            else if(current.getKind() == Kind.IDENT){
+                node =  new NameDef(first,type, current.getText());
+            }
+            else{
+                throw new SyntaxException("Valid Identifier required", current.getSourceLocation());
+            }
+        }
+        else{
+            throw new SyntaxException("Expected a type", current.getSourceLocation());
+        }
+        consume(); //Eat the current Ident.
+        return node;
+    }
+
+    private Types.Type validateType(){
+        return Types.Type.toType(current.getText());
     }
 
     private ASTNode conditionalExpr() throws PLCException {
@@ -381,7 +504,7 @@ public class Parser implements IParser{
         if(current.getKind() == Kind.EOF){
             throw new PLCException("NOTHING TO PARSE");
         }
-        node = expr();
+        node = Prog();
         return node;
     }
 }
