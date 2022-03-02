@@ -144,7 +144,7 @@ class Assignment2StarterTests {
 	@Test
 	public void mytest5(TestInfo testInfo) throws Exception {
 		String input = """
-				3+4*5
+				a[b[c,d],e[f,g]]
 				""";
 		show("-------------");
 		show(input);

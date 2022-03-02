@@ -82,57 +82,56 @@ public class Parser implements IParser{
         }*/
     }
 
-    private ASTNode BinEx() throws PLCException{
+    private ASTNode Term() throws PLCException{
+        //ASTNode node = null;
+        IToken first = current;
+        IToken op = lookahead;
+        ASTNode right = null;
+        ASTNode left = unary();
+        while(current.getKind() == Kind.TIMES || current.getKind() == Kind.DIV
+                || current.getKind() == Kind.MOD){
+            op = current;
+            consume();
+            right = unary();
+            left = new BinaryExpr(first, (Expr) left, op, (Expr) right);
+        }
 
-
-        return null;
+        return left;
     }
 
     private ASTNode BinaryExp() throws PLCException {
-        ASTNode node = null;
+        //ASTNode node = null;
         IToken first = current;
         IToken op = lookahead;
         ASTNode right = null;
         //lookahead = new Token(Kind.EOF); // Temporary change to call EXPR
-        ASTNode left = primaryExpr();
-        while(true){
-            switch (current.getKind()){
-                case PLUS, MINUS, AND, OR -> {
+        ASTNode left = Term();
+        while(current.getKind() == Kind.PLUS || current.getKind() == Kind.MINUS
+            || current.getKind() == Kind.AND || current.getKind() == Kind.OR){
                     op = current;
                     consume();
-                    right = expr();
+                    right = Term();
                     left = new BinaryExpr(first,(Expr) left, op,(Expr) right);
-                    node = left;
-                }
-                case MOD, TIMES, DIV, LT, LE, EQUALS, NOT_EQUALS, GT, GE -> {
-                    op = current;
-                    consume();
-                    //right = left;
-                    right = primaryExpr();
-                    right = new BinaryExpr(first, (Expr) left, op, (Expr) right);
-                    left = right;
-                    node = right;
-                }
-                default -> {return node;}
-
-
-            }
         }
         //consume();
         //ASTNode right = expr();
 
         //node = new BinaryExpr(first,(Expr) left,op,(Expr) right);
-        //return node;
+        return left;
     }
 
-    private ASTNode BinaryExp(ASTNode left) throws  PLCException{
-        ASTNode node = null;
-        IToken op = lookahead;
-        consume(); // Symbol
-        consume(); // Op
-        ASTNode right = expr();
-        node = new BinaryExpr(op, (Expr) left, op, (Expr) right);
-        return node;
+    private ASTNode BinaryExpLeft(ASTNode left) throws  PLCException{
+        ASTNode first = left;
+        IToken op = current;
+        ASTNode right = null;
+        while(current.getKind() == Kind.PLUS || current.getKind() == Kind.MINUS
+                || current.getKind() == Kind.AND || current.getKind() == Kind.OR){
+            op = current;
+            consume();
+            right = Term();
+            left = new BinaryExpr(op, (Expr) left, op, (Expr) right);
+        }
+        return left;
     }
 
     private ASTNode logicalOr() throws PLCException {
@@ -204,21 +203,16 @@ public class Parser implements IParser{
             //We need to call consume and then check for unary again. Or we fall to unarypostfix
             op = current;
             consume();
-            ASTNode Exp = expr();
-            IToken binaryOp = lookahead;
-            //lookahead = new Token(Kind.EOF);
-            index--; //Push back so that binary left knows how to handle it.
-            index--; //Push back so that binary left knows how to handle it.
-            consume();
+            ASTNode Exp = unary();
             node = new UnaryExpr(op,op,(Expr) Exp);
 
-            if(binaryOp.getKind() == Kind.PLUS || binaryOp.getKind() == Kind.MINUS ||
-                    binaryOp.getKind() == Kind.TIMES || binaryOp.getKind() == Kind.DIV ||
-                    binaryOp.getKind() == Kind.MOD || binaryOp.getKind() == Kind.LT ||
-                    binaryOp.getKind() == Kind.GT || binaryOp.getKind() == Kind.EQUALS ||
-                    binaryOp.getKind() == Kind.NOT_EQUALS || binaryOp.getKind() == Kind.LE ||
-                    binaryOp.getKind() == Kind.GE){
-                node = BinaryExp(node);
+            if(current.getKind() == Kind.PLUS || current.getKind() == Kind.MINUS ||
+                    current.getKind() == Kind.TIMES || current.getKind() == Kind.DIV ||
+                    current.getKind() == Kind.MOD || current.getKind() == Kind.LT ||
+                    current.getKind() == Kind.GT || current.getKind() == Kind.EQUALS ||
+                    current.getKind() == Kind.NOT_EQUALS || current.getKind() == Kind.LE ||
+                    current.getKind() == Kind.GE){
+                node = BinaryExpLeft(node);
             }
 
         }
@@ -234,13 +228,13 @@ public class Parser implements IParser{
         IToken first = current;
         if(lookahead.getKind() == Kind.LSQUARE){
             //Pixel Selector
-            lookahead = new Token(Kind.EOF); //Temporarily end of file.
-            ASTNode ident = expr(); //Ident - This consumes.
-            consume(); //Lookahead is now a comma.
-            if(lookahead.getKind() != Kind.COMMA){
+            //lookahead = new Token(Kind.EOF); //Temporarily end of file.
+            ASTNode ident = primaryExpr(); //Ident - This consumes.
+            consume(); //Consume L Bracket
+            ASTNode x = expr(); //Get the value of x - This consumes.
+            if(current.getKind() != Kind.COMMA){
                 throw new PLCException("Invalid Pixel Selector");
             }
-            ASTNode x = expr(); //Get the value of x - This consumes.
             consume();
             ASTNode y = expr();
             if(current.getKind() != Kind.RSQUARE){
@@ -249,15 +243,15 @@ public class Parser implements IParser{
 
             PixelSelector select = new PixelSelector(first, (Expr) x, (Expr) y);
             node = new UnaryExprPostfix(first, (Expr) ident, select);
+            consume();
 
-            if(lookahead.getKind() == Kind.PLUS || lookahead.getKind() == Kind.MINUS ||
-                    lookahead.getKind() == Kind.TIMES || lookahead.getKind() == Kind.DIV ||
-                    lookahead.getKind() == Kind.MOD || lookahead.getKind() == Kind.LT ||
-                    lookahead.getKind() == Kind.GT || lookahead.getKind() == Kind.EQUALS ||
-                    lookahead.getKind() == Kind.NOT_EQUALS || lookahead.getKind() == Kind.LE ||
-                    lookahead.getKind() == Kind.GE){
-                //LT,GT,EQUALS, NOT_EQUALS, LE, GE
-                node = BinaryExp(node);
+            if(current.getKind() == Kind.PLUS || current.getKind() == Kind.MINUS ||
+                    current.getKind() == Kind.TIMES || current.getKind() == Kind.DIV ||
+                    current.getKind() == Kind.MOD || current.getKind() == Kind.LT ||
+                    current.getKind() == Kind.GT || current.getKind() == Kind.EQUALS ||
+                    current.getKind() == Kind.NOT_EQUALS || current.getKind() == Kind.LE ||
+                    current.getKind() == Kind.GE){
+                node = BinaryExpLeft(node);
             }
         }
         else{
@@ -268,6 +262,7 @@ public class Parser implements IParser{
 
     private ASTNode primaryExpr() throws PLCException{
         ASTNode node = null;
+        IToken first = current;
         if(current.getKind() == Kind.LPAREN){
             //Expression
             consume(); //Get next token.
@@ -275,17 +270,37 @@ public class Parser implements IParser{
             if(current.getKind() != Kind.RPAREN){
                 throw new SyntaxException("Expected ')'", current.getSourceLocation());
             }
+            consume();
 
-            if(lookahead.getKind() == Kind.PLUS || lookahead.getKind() == Kind.MINUS ||
-                    lookahead.getKind() == Kind.TIMES || lookahead.getKind() == Kind.DIV ||
-                    lookahead.getKind() == Kind.MOD || lookahead.getKind() == Kind.LT ||
-                    lookahead.getKind() == Kind.GT || lookahead.getKind() == Kind.EQUALS ||
-                    lookahead.getKind() == Kind.NOT_EQUALS || lookahead.getKind() == Kind.LE ||
-                    lookahead.getKind() == Kind.GE){
-                node = BinaryExp(node);
+            if(current.getKind() == Kind.PLUS || current.getKind() == Kind.MINUS ||
+                    current.getKind() == Kind.TIMES || current.getKind() == Kind.DIV ||
+                    current.getKind() == Kind.MOD || current.getKind() == Kind.LT ||
+                    current.getKind() == Kind.GT || current.getKind() == Kind.EQUALS ||
+                    current.getKind() == Kind.NOT_EQUALS || current.getKind() == Kind.LE ||
+                    current.getKind() == Kind.GE){
+                node = BinaryExpLeft(node);
             }
 
             return node;
+        }
+        else if(current.getKind() == Kind.LANGLE){
+            consume(); //Consume the angle
+            ASTNode red = expr();
+            if(current.getKind() != Kind.COMMA){
+                throw new SyntaxException("Expected a comma.");
+            }
+            consume();//Eat the comma.
+            ASTNode green = expr();
+            if(current.getKind() != Kind.COMMA){
+                throw new SyntaxException("Expected a comma.");
+            }
+            consume();//Eat the next comma
+            ASTNode blue = expr();
+            if(current.getKind() != Kind.RANGLE){
+                throw new SyntaxException("Expected an RANGLE");
+            }
+            node = new ColorExpr(first, (Expr) red, (Expr) green, (Expr) blue);
+
         }
         else{
             switch (current.getKind()){
@@ -294,12 +309,24 @@ public class Parser implements IParser{
                 case BOOLEAN_LIT -> {node = booleanLit();}
                 case IDENT -> {node = ident();}
                 case STRING_LIT -> {node = stringLit();}
+                case COLOR_CONST -> {node = colorConst();}
+                case KW_CONSOLE -> {node = consoleExpr();}
                 default -> throw new SyntaxException("Unknown Symbol", current.getSourceLocation());
             }
         }
         consume();
 
         return node;
+    }
+
+    private ASTNode consoleExpr() {
+        ASTNode node = new ConsoleExpr(current);
+        return node;
+    }
+
+    private ASTNode colorConst() {
+        ASTNode color = new ColorConstExpr(current);
+        return color;
     }
 
     private ASTNode booleanLit(){
