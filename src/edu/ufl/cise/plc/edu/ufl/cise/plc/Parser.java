@@ -264,6 +264,28 @@ public class Parser implements IParser{
         }*/
     }
 
+    private ASTNode BinaryCmp() throws PLCException {
+        //ASTNode node = null;
+        IToken first = current;
+        IToken op = lookahead;
+        ASTNode right = null;
+        //lookahead = new Token(Kind.EOF); // Temporary change to call EXPR
+        ASTNode left = BinaryExp();
+        while(current.getKind() == Kind.EQUALS || current.getKind() == Kind.LT ||
+                current.getKind() == Kind.LE || current.getKind() == Kind.GT ||
+                current.getKind() == Kind.GE || current.getKind() == Kind.NOT_EQUALS){
+            op = current;
+            consume();
+            right = BinaryExp();
+            left = new BinaryExpr(first,(Expr) left, op,(Expr) right);
+        }
+        //consume();
+        //ASTNode right = expr();
+
+        //node = new BinaryExpr(first,(Expr) left,op,(Expr) right);
+        return left;
+    }
+
     private ASTNode Term() throws PLCException{
         //ASTNode node = null;
         IToken first = current;
@@ -271,9 +293,7 @@ public class Parser implements IParser{
         ASTNode right = null;
         ASTNode left = unary();
         while(current.getKind() == Kind.TIMES || current.getKind() == Kind.DIV
-                || current.getKind() == Kind.MOD || current.getKind() == Kind.EQUALS
-        || current.getKind() == Kind.LT || current.getKind() == Kind.LE || current.getKind() == Kind.GT
-        || current.getKind() == Kind.GE || current.getKind() == Kind.NOT_EQUALS){
+                || current.getKind() == Kind.MOD){
             op = current;
             consume();
             right = unary();
@@ -290,8 +310,8 @@ public class Parser implements IParser{
         ASTNode right = null;
         //lookahead = new Token(Kind.EOF); // Temporary change to call EXPR
         ASTNode left = Term();
-        while(current.getKind() == Kind.PLUS || current.getKind() == Kind.MINUS
-            || current.getKind() == Kind.AND || current.getKind() == Kind.OR){
+        while(current.getKind() == Kind.PLUS || current.getKind() == Kind.MINUS ||
+                current.getKind() == Kind.AND || current.getKind() == Kind.OR){
                     op = current;
                     consume();
                     right = Term();
@@ -301,6 +321,29 @@ public class Parser implements IParser{
         //ASTNode right = expr();
 
         //node = new BinaryExpr(first,(Expr) left,op,(Expr) right);
+        return left;
+    }
+
+    private ASTNode BinaryCmpLeft(ASTNode left) throws  PLCException{
+        ASTNode first = left;
+        IToken op = current;
+        ASTNode right = null;
+        if(current.getKind() == Kind.EQUALS || current.getKind() == Kind.LT ||
+                current.getKind() == Kind.LE || current.getKind() == Kind.GT ||
+                current.getKind() == Kind.GE || current.getKind() == Kind.NOT_EQUALS) {
+            while (current.getKind() == Kind.EQUALS || current.getKind() == Kind.LT ||
+                    current.getKind() == Kind.LE || current.getKind() == Kind.GT ||
+                    current.getKind() == Kind.GE || current.getKind() == Kind.NOT_EQUALS) {
+                op = current;
+                consume();
+                right = BinaryCmp();
+                left = new BinaryExpr(op, (Expr) left, op, (Expr) right);
+            }
+        }
+        else{
+            left = BinaryExpLeft(left);
+        }
+
         return left;
     }
 
@@ -321,7 +364,7 @@ public class Parser implements IParser{
     private ASTNode logicalOr() throws PLCException {
         ASTNode node = null;
         if(lookahead.getKind() == Kind.OR){
-            node = BinaryExp();
+            node = BinaryCmp();
         }
         else {
             node = logicalAnd();
@@ -333,7 +376,7 @@ public class Parser implements IParser{
     private ASTNode logicalAnd() throws PLCException {
         ASTNode node = null;
         if(lookahead.getKind() == Kind.AND){
-            node = BinaryExp();
+            node = BinaryCmp();
         }
         else{
             node = comparison();
@@ -346,7 +389,7 @@ public class Parser implements IParser{
         switch(lookahead.getKind()){
             case LT,GT,EQUALS, NOT_EQUALS, LE, GE -> {
                 /* BINARY EXPRESSION */
-                node = BinaryExp();
+                node = BinaryCmp();
             }
             default -> {
                 node = additive();
@@ -358,7 +401,7 @@ public class Parser implements IParser{
     private ASTNode additive() throws PLCException {
         ASTNode node = null;
         if(lookahead.getKind() == Kind.PLUS || lookahead.getKind() == Kind.MINUS){
-            node = BinaryExp();
+            node = BinaryCmp();
         }
         else{
             node = multiplicative();
@@ -370,7 +413,7 @@ public class Parser implements IParser{
         ASTNode node = null;
         if(lookahead.getKind() == Kind.TIMES || lookahead.getKind() == Kind.DIV ||
                 lookahead.getKind() == Kind.MOD){
-            node = BinaryExp();
+            node = BinaryCmp();
         }
         else{
             node = unary();
@@ -396,7 +439,7 @@ public class Parser implements IParser{
                     current.getKind() == Kind.GT || current.getKind() == Kind.EQUALS ||
                     current.getKind() == Kind.NOT_EQUALS || current.getKind() == Kind.LE ||
                     current.getKind() == Kind.GE){
-                node = BinaryExpLeft(node);
+                node = BinaryCmpLeft(node);
             }
 
         }
@@ -435,7 +478,7 @@ public class Parser implements IParser{
                     current.getKind() == Kind.GT || current.getKind() == Kind.EQUALS ||
                     current.getKind() == Kind.NOT_EQUALS || current.getKind() == Kind.LE ||
                     current.getKind() == Kind.GE){
-                node = BinaryExpLeft(node);
+                node = BinaryCmpLeft(node);
             }
         }
         else{

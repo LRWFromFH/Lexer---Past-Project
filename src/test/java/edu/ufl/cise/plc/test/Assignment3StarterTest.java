@@ -1046,4 +1046,161 @@ class Assignment3StarterTest {
 		show("Expected LexicalException:     " + e);
 	}
 
+	@DisplayName("testVeryLong")
+	@Test
+	public void testVeryLong(TestInfo testInfo) throws Exception {
+		String input = """
+				color this(int test, boolean is, float very, image long)
+					string[very,long] legal = test;
+					color alsoLegal = RED + WHITE;
+					test <- is & ("so" < long);
+					color thisIsTooLong <- 
+						if (test < very) 
+							<<test, is, legal>>
+						else
+							alsoLegal
+						fi;
+					^ not % even == a + colorType;
+					write stillLegal -> 2;
+				""";
+		show("-------------");
+		show(input);
+		ASTNode ast = getAST(input);
+		show(ast);
+		assertThat("", ast, instanceOf(Program.class));
+		assertEquals(Type.COLOR, ((Program) ast).getReturnType());
+
+		//(int test, boolean is, float very, image long)
+		List<NameDef> params = ((Program) ast).getParams();
+		assertEquals(4, params.size());
+		NameDef var1 = params.get(0);
+		assertThat("", var1, instanceOf(NameDef.class));
+		assertEquals(Type.INT, ((NameDef) var1).getType());
+		assertEquals("test", ((NameDef) var1).getName());
+		NameDef var2 = params.get(1);
+		assertThat("", var2, instanceOf(NameDef.class));
+		assertEquals(Type.BOOLEAN, ((NameDef) var2).getType());
+		assertEquals("is", ((NameDef) var2).getName());
+		NameDef var3 = params.get(2);
+		assertThat("", var3, instanceOf(NameDef.class));
+		assertEquals(Type.FLOAT, ((NameDef) var3).getType());
+		assertEquals("very", ((NameDef) var3).getName());
+		NameDef var4 = params.get(3);
+		assertThat("", var4, instanceOf(NameDef.class));
+		assertEquals(Type.IMAGE, ((NameDef) var4).getType());
+		assertEquals("long", ((NameDef) var4).getName());
+
+		//string[very,long] legal = test;
+		List<ASTNode> decsAndStatements = ((Program) ast).getDecsAndStatements();
+		assertEquals(6, decsAndStatements.size());
+		ASTNode var5 = decsAndStatements.get(0);
+		assertThat("", var5, instanceOf(VarDeclaration.class));
+		NameDef var6 = ((VarDeclaration) var5).getNameDef();
+		assertThat("", var6, instanceOf(NameDefWithDim.class));
+		assertEquals(Type.STRING, ((NameDefWithDim) var6).getType());
+		assertEquals("legal", ((NameDefWithDim) var6).getName());
+		Dimension var6a = ((NameDefWithDim) var6).getDim();
+		assertThat("", var6a, instanceOf(Dimension.class));
+		Expr var6b = ((Dimension) var6a).getWidth();
+		assertThat("", var6b, instanceOf(IdentExpr.class));
+		assertEquals("very", ((IdentExpr) var6b).getText());
+		Expr var6c = ((Dimension) var6a).getHeight();
+		assertThat("", var6c, instanceOf(IdentExpr.class));
+		assertEquals("long", ((IdentExpr) var6c).getText());
+		Expr var7 = ((VarDeclaration) var5).getExpr();
+		assertThat("", var7, instanceOf(IdentExpr.class));
+		assertEquals("test", ((IdentExpr) var7).getText());
+		assertEquals(ASSIGN, ((VarDeclaration) var5).getOp().getKind());
+
+		//color alsoLegal = RED + WHITE;
+		ASTNode var8 = decsAndStatements.get(1);
+		assertThat("", var8, instanceOf(VarDeclaration.class));
+		NameDef var9 = ((VarDeclaration) var8).getNameDef();
+		assertThat("", var9, instanceOf(NameDef.class));
+		assertEquals(Type.COLOR, ((NameDef) var9).getType());
+		assertEquals("alsoLegal", ((NameDef) var9).getName());
+		Expr var10 = ((VarDeclaration) var8).getExpr();
+		assertThat("", var10, instanceOf(BinaryExpr.class));
+		assertEquals(PLUS, ((BinaryExpr) var10).getOp().getKind());
+		Expr var10a = ((BinaryExpr) var10).getLeft();
+		assertThat("", var10a, instanceOf(ColorConstExpr.class));
+		Expr var10b = ((BinaryExpr) var10).getRight();
+		assertThat("", var10b, instanceOf(ColorConstExpr.class));
+		assertEquals(ASSIGN, ((VarDeclaration) var8).getOp().getKind());
+
+		//test <- is & ("so" < long);
+		ASTNode var11 = decsAndStatements.get(2);
+		assertThat("", var11, instanceOf(ReadStatement.class));
+		assertEquals("test", ((ReadStatement) var11).getName());
+		Expr var12 = ((ReadStatement) var11).getSource();
+		assertThat("", var12, instanceOf(BinaryExpr.class));
+		assertEquals(AND, ((BinaryExpr) var12).getOp().getKind());
+		Expr var12a = ((BinaryExpr) var12).getLeft();
+		assertThat("", var12a, instanceOf(IdentExpr.class));
+		assertEquals("is", ((IdentExpr) var12a).getText());
+		Expr var13 = ((BinaryExpr) var12).getRight();
+		assertThat("", var13, instanceOf(BinaryExpr.class));
+		assertEquals(LT, ((BinaryExpr) var13).getOp().getKind());
+		Expr var13a = ((BinaryExpr) var13).getLeft();
+		assertThat("", var13a, instanceOf(StringLitExpr.class));
+		assertEquals("so", ((StringLitExpr) var13a).getValue());
+		Expr var13b = ((BinaryExpr) var13).getRight();
+		assertThat("", var13b, instanceOf(IdentExpr.class));
+		assertEquals("long", ((IdentExpr) var13b).getText());
+
+		/*
+		 * color thisIsTooLong <-
+		 * if (test < very)
+		 * 		<<test, is, legal>>
+		 * else
+		 * 		alsoLegal
+		 * fi;
+		 */
+		ASTNode var14 = decsAndStatements.get(3);
+		assertThat("", var14, instanceOf(VarDeclaration.class));
+		NameDef var15 = ((VarDeclaration) var14).getNameDef();
+		assertThat("", var15, instanceOf(NameDef.class));
+		assertEquals(Type.COLOR, ((NameDef) var15).getType());
+		assertEquals("thisIsTooLong", ((NameDef) var15).getName());
+		Expr var16 = ((VarDeclaration) var14).getExpr();
+		assertThat("", var16, instanceOf(ConditionalExpr.class));
+		assertEquals(LARROW, ((VarDeclaration) var14).getOp().getKind());
+
+		//^ not % even == a + colorType;
+		ASTNode var17 = decsAndStatements.get(4);
+		assertThat("", var17, instanceOf(ReturnStatement.class));
+		Expr var18 = ((ReturnStatement) var17).getExpr();
+		assertThat("", var18, instanceOf(BinaryExpr.class));
+		assertEquals(EQUALS, ((BinaryExpr) var18).getOp().getKind());
+		Expr var19 = ((BinaryExpr) var18).getLeft();
+		assertThat("", var19, instanceOf(BinaryExpr.class));
+		assertEquals(MOD, ((BinaryExpr) var19).getOp().getKind());
+		Expr var19a = ((BinaryExpr) var19).getLeft();
+		assertThat("", var19a, instanceOf(IdentExpr.class));
+		assertEquals("not", ((IdentExpr) var19a).getText());
+		Expr var19b = ((BinaryExpr) var19).getRight();
+		assertThat("", var19b, instanceOf(IdentExpr.class));
+		assertEquals("even", ((IdentExpr) var19b).getText());
+		Expr var20 = ((BinaryExpr) var18).getRight();
+		assertThat("", var20, instanceOf(BinaryExpr.class));
+		assertEquals(PLUS, ((BinaryExpr) var20).getOp().getKind());
+		Expr var20a = ((BinaryExpr) var20).getLeft();
+		assertThat("", var20a, instanceOf(IdentExpr.class));
+		assertEquals("a", ((IdentExpr) var20a).getText());
+		Expr var20b = ((BinaryExpr) var20).getRight();
+		assertThat("", var20b, instanceOf(IdentExpr.class));
+		assertEquals("colorType", ((IdentExpr) var20b).getText());
+
+		//write stillLegal -> 2;
+		ASTNode var21 = decsAndStatements.get(5);
+		assertThat("", var21, instanceOf(WriteStatement.class));
+		Expr var22 = ((WriteStatement) var21).getSource();
+		assertThat("", var22, instanceOf(IdentExpr.class));
+		assertEquals("stillLegal", ((IdentExpr) var22).getText());
+		Expr var23 = ((WriteStatement) var21).getDest();
+		assertThat("", var23, instanceOf(IntLitExpr.class));
+		assertEquals(2, ((IntLitExpr) var23).getValue());
+
+	}
+
 }
