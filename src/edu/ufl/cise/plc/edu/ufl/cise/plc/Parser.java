@@ -29,14 +29,22 @@ public class Parser implements IParser{
         ASTNode node = null;
         List<NameDef> params = new ArrayList<>();
         List<ASTNode> decs = new ArrayList<>();
+        String type;
+        Types.Type test;
         try{
-            validateType();
+            test = validateType();
         }
         catch (IllegalArgumentException e){
             throw new SyntaxException("Illegal return type", current.getSourceLocation());
         }
-        if(validateType() != null){
-            String type = current.getText();
+        if(validateType() == null){
+            if(current.getKind() == Kind.KW_VOID){
+                //type = "void";
+                test = Types.Type.VOID;
+            }
+        }
+        if(test != null){
+            type = current.getText();
             consume(); //Eat Type
             if(current.getKind() != Kind.IDENT){
                 throw new SyntaxException("Program name must be a valid identifier!", current.getSourceLocation());
@@ -49,7 +57,10 @@ public class Parser implements IParser{
             consume();//Consume LPAREN
             while(current.getKind()!= Kind.RPAREN){
                     params.add((NameDef) nameDef());
-                    if(current.getKind() == Kind.COMMA){
+                    if(current.getKind() == Kind.COMMA && lookahead.getKind() == Kind.RPAREN){
+                        throw new SyntaxException("Invalid params", current.getSourceLocation());
+                    }
+                    else if(current.getKind() != Kind.RPAREN){
                         consume();
                     }
             }
@@ -166,6 +177,12 @@ public class Parser implements IParser{
         NameDef node = null;
 
         IToken first = current;
+        try{
+            validateType();
+        }
+        catch (IllegalArgumentException e){
+            throw new SyntaxException("Invalid Type.", current.getSourceLocation());
+        }
         if(validateType() != null){
             String type = current.getText();
             consume(); //Eat the type
@@ -201,6 +218,9 @@ public class Parser implements IParser{
     }
 
     private Types.Type validateType(){
+        if(current.getKind() == Kind.KW_VOID || current.getKind() == Kind.KW_CONSOLE){
+            return null;
+        }
         return Types.Type.toType(current.getText());
     }
 
