@@ -14,6 +14,7 @@ public class TypeCheckVisitor implements ASTVisitor {
 
 	SymbolTable symbolTable = new SymbolTable();  
 	Program root;
+	String prog;
 	
 	record Pair<T0,T1>(T0 t0, T1 t1){};  //may be useful for constructing lookup tables.
 	
@@ -529,7 +530,7 @@ public class TypeCheckVisitor implements ASTVisitor {
 		//TODO:  this method is incomplete, finish it.
 
 		//We want to insert the name of the program into the symbol table.
-		//symbolTable.insert(program.getName());
+		prog = program.getName();
 
 		List<NameDef> args = program.getParams();
 		for (NameDef a : args) {
@@ -559,7 +560,9 @@ public class TypeCheckVisitor implements ASTVisitor {
 			nameDef.setInitialized(true);
 		}
 		//Insert nameDef to table.
-
+		if(nameDef.getName().equals(prog)){
+			throw new TypeCheckException("Cannot reuse program name.");
+		}
 		if(symbolTable.insert(nameDef.getName(), (Declaration) nameDef)){
 			ret = nameDef.getType();
 		}
@@ -579,7 +582,9 @@ public class TypeCheckVisitor implements ASTVisitor {
 			nameDefWithDim.setInitialized(true);
 		}
 		//Insert nameDef to table.
-
+		if(nameDefWithDim.getName().equals(prog)){
+			throw new TypeCheckException("Cannot reuse program name.");
+		}
 		if(symbolTable.insert(nameDefWithDim.getName(), (Declaration) nameDefWithDim)){
 			ret = nameDefWithDim.getType();
 		}
