@@ -2,6 +2,7 @@ package edu.ufl.cise.plc;
 
 import edu.ufl.cise.plc.ast.Declaration;
 import edu.ufl.cise.plc.ast.Types;
+import edu.ufl.cise.plc.ast.VarDeclaration;
 
 import java.util.HashMap;
 
@@ -12,6 +13,7 @@ public class SymbolTable {
 
     HashMap<String, Declaration> entries;
 
+
     public SymbolTable(){
         entries = new HashMap<>();
     }
@@ -20,6 +22,7 @@ public class SymbolTable {
     public boolean insert(String name, Declaration dec){
         return (entries.putIfAbsent(name, dec) == null);
     }
+
 
     //Returns null if not declared.
     public Declaration lookup(String name){
