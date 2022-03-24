@@ -1491,5 +1491,22 @@ class Assignment3StarterTest {
 		show("Expected syntax exception: " + e);
 	}
 
+	@DisplayName("test061")
+	@Test
+	public void test061(TestInfo testInfo) throws Exception {
+		String input = """
+				image addition(int size)
+				    image[size,size] f;
+				    f[x,y] = <<x,x,x>>%<<256,256,256>> +  <<y,y,y>>%<<256,256,256>>;
+				    ^f;
+				    """;
+		show("-------------");
+		show(input);
+		Exception e = assertThrows(SyntaxException.class, () -> {
+			@SuppressWarnings("unused")
+			ASTNode ast = getAST(input);
+		});
+		show("Expected syntax exception: " + e);
+	}
 
 }

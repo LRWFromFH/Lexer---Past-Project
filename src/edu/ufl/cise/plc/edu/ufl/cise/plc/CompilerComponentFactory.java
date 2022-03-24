@@ -23,5 +23,9 @@ public class CompilerComponentFactory {
 		return new Parser(lex.getTokenList());
 
 	}
+
+	public static TypeCheckVisitor getTypeChecker(){
+		return new TypeCheckVisitor();
+	}
 	
 }

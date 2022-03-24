@@ -13,14 +13,14 @@ public class Parser implements IParser{
     IToken lookahead; //One token ahead
     List<Token> tokenList;
     int index;
-    boolean paren;
+    boolean FromBinary;
 
     public Parser(List<Token> tokenList){
         this.tokenList = tokenList;
         index = 0;
         current = null;
         lookahead = null;
-        paren = false;
+        FromBinary = false;
         consume(); //Loads current and lookahead with values.
     }
 
@@ -127,6 +127,7 @@ public class Parser implements IParser{
                 node = new ReadStatement(first, ident.getText(), selector,(Expr) val);
             }
         }
+
         if(current.getKind() == Kind.SEMI){
             consume();
         }
@@ -363,7 +364,7 @@ public class Parser implements IParser{
         else{
             left = BinaryExpLeft(left);
         }
-
+        FromBinary = false;
         return left;
     }
 
@@ -371,6 +372,12 @@ public class Parser implements IParser{
         ASTNode first = left;
         IToken op = current;
         ASTNode right = null;
+        while(current.getKind() == Kind.TIMES || current.getKind() == Kind.MOD || current.getKind() == Kind.DIV){
+            op = current;
+            consume();
+            right = Term();
+            left = new BinaryExpr(op, (Expr) left, op, (Expr) right);
+        }
         while(current.getKind() == Kind.PLUS || current.getKind() == Kind.MINUS
                 || current.getKind() == Kind.AND || current.getKind() == Kind.OR){
             op = current;
@@ -378,6 +385,7 @@ public class Parser implements IParser{
             right = Term();
             left = new BinaryExpr(op, (Expr) left, op, (Expr) right);
         }
+
         return left;
     }
 
@@ -453,13 +461,16 @@ public class Parser implements IParser{
             ASTNode Exp = unary();
             node = new UnaryExpr(op,op,(Expr) Exp);
 
-            if(current.getKind() == Kind.PLUS || current.getKind() == Kind.MINUS ||
-                    current.getKind() == Kind.TIMES || current.getKind() == Kind.DIV ||
-                    current.getKind() == Kind.MOD || current.getKind() == Kind.LT ||
-                    current.getKind() == Kind.GT || current.getKind() == Kind.EQUALS ||
-                    current.getKind() == Kind.NOT_EQUALS || current.getKind() == Kind.LE ||
-                    current.getKind() == Kind.GE){
-                node = BinaryCmpLeft(node);
+            if(!FromBinary) {
+                if (current.getKind() == Kind.PLUS || current.getKind() == Kind.MINUS ||
+                        current.getKind() == Kind.TIMES || current.getKind() == Kind.DIV ||
+                        current.getKind() == Kind.MOD || current.getKind() == Kind.LT ||
+                        current.getKind() == Kind.GT || current.getKind() == Kind.EQUALS ||
+                        current.getKind() == Kind.NOT_EQUALS || current.getKind() == Kind.LE ||
+                        current.getKind() == Kind.GE) {
+                    FromBinary = true;
+                    node = BinaryCmpLeft(node);
+                }
             }
 
         }
@@ -492,13 +503,17 @@ public class Parser implements IParser{
             node = new UnaryExprPostfix(first, (Expr) ident, select);
             consume();
 
-            if(current.getKind() == Kind.PLUS || current.getKind() == Kind.MINUS ||
-                    current.getKind() == Kind.TIMES || current.getKind() == Kind.DIV ||
-                    current.getKind() == Kind.MOD || current.getKind() == Kind.LT ||
-                    current.getKind() == Kind.GT || current.getKind() == Kind.EQUALS ||
-                    current.getKind() == Kind.NOT_EQUALS || current.getKind() == Kind.LE ||
-                    current.getKind() == Kind.GE){
-                node = BinaryCmpLeft(node);
+            if(!FromBinary) {
+                if (current.getKind() == Kind.PLUS || current.getKind() == Kind.MINUS ||
+                        current.getKind() == Kind.TIMES || current.getKind() == Kind.DIV ||
+                        current.getKind() == Kind.MOD || current.getKind() == Kind.LT ||
+                        current.getKind() == Kind.GT || current.getKind() == Kind.EQUALS ||
+                        current.getKind() == Kind.NOT_EQUALS || current.getKind() == Kind.LE ||
+                        current.getKind() == Kind.GE || current.getKind() == Kind.AND ||
+                        current.getKind() == Kind.OR) {
+                    FromBinary = true;
+                    node = BinaryCmpLeft(node);
+                }
             }
         }
         else{
@@ -510,22 +525,38 @@ public class Parser implements IParser{
     private ASTNode primaryExpr() throws PLCException{
         ASTNode node = null;
         IToken first = current;
-        if(current.getKind() == Kind.LPAREN){
+        if(current.getKind() == Kind.LPAREN) {
             //Expression
             consume(); //Get next token.
             node = expr();
-            if(current.getKind() != Kind.RPAREN){
+            if (!FromBinary) {
+                if (current.getKind() == Kind.PLUS || current.getKind() == Kind.MINUS ||
+                        current.getKind() == Kind.TIMES || current.getKind() == Kind.DIV ||
+                        current.getKind() == Kind.MOD || current.getKind() == Kind.LT ||
+                        current.getKind() == Kind.GT || current.getKind() == Kind.EQUALS ||
+                        current.getKind() == Kind.NOT_EQUALS || current.getKind() == Kind.LE ||
+                        current.getKind() == Kind.GE || current.getKind() == Kind.AND ||
+                        current.getKind() == Kind.OR) {
+                    FromBinary = true;
+                    node = BinaryCmpLeft(node);
+                }
+            }
+            if (current.getKind() != Kind.RPAREN) {
                 throw new SyntaxException("Expected ')'", current.getSourceLocation());
             }
             consume();
 
-            if(current.getKind() == Kind.PLUS || current.getKind() == Kind.MINUS ||
-                    current.getKind() == Kind.TIMES || current.getKind() == Kind.DIV ||
-                    current.getKind() == Kind.MOD || current.getKind() == Kind.LT ||
-                    current.getKind() == Kind.GT || current.getKind() == Kind.EQUALS ||
-                    current.getKind() == Kind.NOT_EQUALS || current.getKind() == Kind.LE ||
-                    current.getKind() == Kind.GE){
-                node = BinaryExpLeft(node);
+            if (!FromBinary) {
+                if (current.getKind() == Kind.PLUS || current.getKind() == Kind.MINUS ||
+                        current.getKind() == Kind.TIMES || current.getKind() == Kind.DIV ||
+                        current.getKind() == Kind.MOD || current.getKind() == Kind.LT ||
+                        current.getKind() == Kind.GT || current.getKind() == Kind.EQUALS ||
+                        current.getKind() == Kind.NOT_EQUALS || current.getKind() == Kind.LE ||
+                        current.getKind() == Kind.GE || current.getKind() == Kind.AND ||
+                        current.getKind() == Kind.OR) {
+                    FromBinary = true;
+                    node = BinaryCmpLeft(node);
+                }
             }
 
             return node;
@@ -548,6 +579,20 @@ public class Parser implements IParser{
             }
             node = new ColorExpr(first, (Expr) red, (Expr) green, (Expr) blue);
 
+            if(!FromBinary) {
+                if (lookahead.getKind() == Kind.PLUS || lookahead.getKind() == Kind.MINUS ||
+                        lookahead.getKind() == Kind.TIMES || lookahead.getKind() == Kind.DIV ||
+                        lookahead.getKind() == Kind.MOD || lookahead.getKind() == Kind.LT ||
+                        lookahead.getKind() == Kind.GT || lookahead.getKind() == Kind.EQUALS ||
+                        lookahead.getKind() == Kind.NOT_EQUALS || lookahead.getKind() == Kind.LE ||
+                        lookahead.getKind() == Kind.GE  || current.getKind() == Kind.AND ||
+                        current.getKind() == Kind.OR) {
+                    consume(); //Consume RANGLE
+                    FromBinary = true;
+                    node = BinaryCmpLeft(node);
+                    return node;
+                }
+            }
         }
         else{
             switch (current.getKind()){
