@@ -309,6 +309,7 @@ public class Parser implements IParser{
 
     private ASTNode Term() throws PLCException{
         //ASTNode node = null;
+        FromBinary = true;
         IToken first = current;
         IToken op = lookahead;
         ASTNode right = null;
@@ -321,11 +322,13 @@ public class Parser implements IParser{
             left = new BinaryExpr(first, (Expr) left, op, (Expr) right);
         }
 
+        FromBinary = false;
         return left;
     }
 
     private ASTNode BinaryExp() throws PLCException {
         //ASTNode node = null;
+        FromBinary = true;
         IToken first = current;
         IToken op = lookahead;
         ASTNode right = null;
@@ -342,6 +345,7 @@ public class Parser implements IParser{
         //ASTNode right = expr();
 
         //node = new BinaryExpr(first,(Expr) left,op,(Expr) right);
+        FromBinary = false;
         return left;
     }
 

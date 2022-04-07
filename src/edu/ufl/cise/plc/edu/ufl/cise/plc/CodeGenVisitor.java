@@ -33,8 +33,12 @@ public class CodeGenVisitor implements ASTVisitor {
 
     @Override
     public Object visitStringLitExpr(StringLitExpr stringLitExpr, Object arg) throws Exception {
-        //program += stringLitExpr.getValue();
-        return "\""+stringLitExpr.getValue()+"\"";
+        String str = "\"\"\"\n"+ stringLitExpr.getValue() +"\"\"\"";
+        //"""
+        //STRINGLIT
+        //"""
+        //"\"" + stringLitExpr.getValue() + "\""
+        return str;
     }
 
     @Override
@@ -43,7 +47,7 @@ public class CodeGenVisitor implements ASTVisitor {
         String snippet = "";
         //Check for cast
         if(intLitExpr.getCoerceTo() != null && intLitExpr.getCoerceTo() != Types.Type.INT){
-            cast = "(" + intLitExpr.getCoerceTo().toString() + ") ";
+            cast = "(" + intLitExpr.getCoerceTo().toString().toLowerCase() + ") ";
         }
         snippet = cast + intLitExpr.getValue();
         //program += snippet;
@@ -56,7 +60,7 @@ public class CodeGenVisitor implements ASTVisitor {
         String snippet = "";
         //Check for cast
         if(floatLitExpr.getCoerceTo() != null && floatLitExpr.getCoerceTo() != Types.Type.FLOAT){
-            cast = "(" + floatLitExpr.getCoerceTo().toString() + ") ";
+            cast = "(" + floatLitExpr.getCoerceTo().toString().toLowerCase() + ") ";
         }
         snippet = cast + floatLitExpr.getValue() + "f";
         //program += snippet;
@@ -110,7 +114,7 @@ public class CodeGenVisitor implements ASTVisitor {
     public Object visitUnaryExpr(UnaryExpr unaryExpression, Object arg) throws Exception {
         String op = unaryExpression.getOp().getText();
         String snippet = (String) unaryExpression.getExpr().visit(this, null);
-        snippet = "(" + op + " " + snippet + ")";
+        snippet = "(" + op + snippet + ")";
         return snippet;
     }
 
@@ -119,7 +123,21 @@ public class CodeGenVisitor implements ASTVisitor {
         String op = binaryExpr.getOp().getText();
         String left = (String) binaryExpr.getLeft().visit(this, null);
         String right = (String) binaryExpr.getRight().visit(this, null);
-        String snippet = "(" + left + op + right +")";
+        String snippet = "";
+        if(binaryExpr.getLeft().getType() == Types.Type.STRING || binaryExpr.getRight().getType() == Types.Type.STRING){
+            if(op.equals("==")){
+                op = ".equals(";
+            }
+            if(op.equals("!=")){
+                op = ".equals(";
+                snippet ="(!" + left + op + right +"))";
+                return snippet;
+            }
+        }
+        snippet ="(" + left + op + right +")";
+        if(op.equals(".equals(")){
+            snippet += ")";
+        }
         return snippet;
     }
 
@@ -129,7 +147,7 @@ public class CodeGenVisitor implements ASTVisitor {
         String snippet = "";
         //Check for cast
         if(identExpr.getCoerceTo() != null && identExpr.getCoerceTo() != identExpr.getType()){
-            cast = "(" + identExpr.getCoerceTo().toString() + ") ";
+            cast = "(" + identExpr.getCoerceTo().toString().toLowerCase() + ") ";
         }
         snippet = cast + identExpr.getText();
         //program += snippet;
@@ -142,7 +160,7 @@ public class CodeGenVisitor implements ASTVisitor {
         String condition = (String) conditionalExpr.getCondition().visit(this, null);
         String trueCase = (String) conditionalExpr.getTrueCase().visit(this, null);
         String falseCase = (String) conditionalExpr.getFalseCase().visit(this, null);
-        snippet = "(" + condition + ") ? \n\t(" + trueCase + ") :\n\t" + "(" + falseCase + ")";
+        snippet = "((" + condition + ") ? (" + trueCase + ") :" + " (" + falseCase + "))";
 
         return snippet;
     }
@@ -165,8 +183,12 @@ public class CodeGenVisitor implements ASTVisitor {
         //Because of type checking I assume there should be no way to have an incompatible type
         //I will chance this if necessary based on testing.
         String snippet = assignmentStatement.getName() + "= ";
+        String resultType = assignmentStatement.getTargetDec().getType().toString().toLowerCase();
+        if(resultType.equals("string")){
+            resultType = "String";
+        }
         String expr = (String) assignmentStatement.getExpr().visit(this, null);
-        snippet += expr + ";\n";
+        snippet += "(" + resultType +") " + expr + ";\n";
 
         return snippet;
     }
@@ -247,7 +269,15 @@ public class CodeGenVisitor implements ASTVisitor {
         String snippet = (String) declaration.getNameDef().visit(this, null);
         //IToken.Kind op = declaration.getOp().getKind();
         if(declaration.getOp() != null){
-            snippet += " = " + (String) declaration.getExpr().visit(this, null);
+            snippet += "=";
+            String resultType = declaration.getType().toString().toLowerCase();
+            if(resultType.equals("string")){
+                resultType = "String";
+            }
+            if(declaration.getType() != declaration.getExpr().getType()){
+                snippet += "(" + resultType+")";
+            }
+            snippet += "(" + (String) declaration.getExpr().visit(this, null) + ")";
         }
         snippet+= ";";
         return snippet;
