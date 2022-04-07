@@ -5,6 +5,7 @@ package edu.ufl.cise.plc;
 
 import edu.ufl.cise.plc.Lexer;
 import edu.ufl.cise.plc.ILexer;
+import edu.ufl.cise.plc.ast.ASTVisitor;
 
 public class CompilerComponentFactory {
 	
@@ -26,6 +27,10 @@ public class CompilerComponentFactory {
 
 	public static TypeCheckVisitor getTypeChecker(){
 		return new TypeCheckVisitor();
+	}
+
+	public static ASTVisitor getCodeGenerator(String packageName) {
+		return new CodeGenVisitor(packageName);
 	}
 	
 }

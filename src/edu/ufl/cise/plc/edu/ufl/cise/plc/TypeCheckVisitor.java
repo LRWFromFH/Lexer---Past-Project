@@ -544,9 +544,9 @@ public class TypeCheckVisitor implements ASTVisitor {
 		
 		//Check declarations and statements
 		List<ASTNode> decsAndStatements = program.getDecsAndStatements();
-		if(decsAndStatements.isEmpty()){
-			throw new TypeCheckException("Empty program.");
-		}
+		//if(decsAndStatements.isEmpty()){
+			//throw new TypeCheckException("Empty program.");
+		//}
 		for (ASTNode node : decsAndStatements) {
 			node.visit(this, arg);
 		}
@@ -565,6 +565,9 @@ public class TypeCheckVisitor implements ASTVisitor {
 		}
 		if(symbolTable.insert(nameDef.getName(), (Declaration) nameDef)){
 			ret = nameDef.getType();
+		}
+		else{
+			throw new TypeCheckException("Variable name already in use!");
 		}
 		if(nameDef.getType() == IMAGE && !nameDef.isInitialized()){
 			throw new TypeCheckException("Images should always have a dimension!");
@@ -587,6 +590,9 @@ public class TypeCheckVisitor implements ASTVisitor {
 		}
 		if(symbolTable.insert(nameDefWithDim.getName(), (Declaration) nameDefWithDim)){
 			ret = nameDefWithDim.getType();
+		}
+		else{
+			throw new TypeCheckException("Variable name already in use!");
 		}
 		return ret;
 	}
