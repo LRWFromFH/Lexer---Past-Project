@@ -1,18 +1,30 @@
 package edu.ufl.cise.plc;
 
 import edu.ufl.cise.plc.ast.*;
-import edu.ufl.cise.plc.runtime.ConsoleIO;
+import java.awt.Color;
 
+import edu.ufl.cise.plc.runtime.ColorTuple;
+import edu.ufl.cise.plc.runtime.ConsoleIO;
+import edu.ufl.cise.plc.runtime.FileURLIO;
+import edu.ufl.cise.plc.runtime.ImageOps;
+
+import java.awt.image.BufferedImage;
 import java.util.List;
 
 public class CodeGenVisitor implements ASTVisitor {
 
     final String PackageName;
     String program;
+    boolean run;
+    boolean image;
+    boolean color;
 
     public CodeGenVisitor(String PackageName){
         this.PackageName = PackageName;
         program = "";
+        run = true;
+        image = true;
+        color = true;
     }
 
     //The caller is responsible for adding the ending semicolon.
@@ -48,6 +60,9 @@ public class CodeGenVisitor implements ASTVisitor {
         //Check for cast
         if(intLitExpr.getCoerceTo() != null && intLitExpr.getCoerceTo() != Types.Type.INT){
             cast = "(" + intLitExpr.getCoerceTo().toString().toLowerCase() + ") ";
+            if(cast.equals("(color) ")){
+                cast = "";
+            }
         }
         snippet = cast + intLitExpr.getValue();
         //program += snippet;
@@ -61,6 +76,9 @@ public class CodeGenVisitor implements ASTVisitor {
         //Check for cast
         if(floatLitExpr.getCoerceTo() != null && floatLitExpr.getCoerceTo() != Types.Type.FLOAT){
             cast = "(" + floatLitExpr.getCoerceTo().toString().toLowerCase() + ") ";
+            if(cast.equals("(color) ")){
+                cast = "";
+            }
         }
         snippet = cast + floatLitExpr.getValue() + "f";
         //program += snippet;
@@ -69,13 +87,24 @@ public class CodeGenVisitor implements ASTVisitor {
 
     @Override
     public Object visitColorConstExpr(ColorConstExpr colorConstExpr, Object arg) throws Exception {
-        throw new UnsupportedOperationException("Not yet Implemented");
-        //return null;
+        //'BLACK','BLUE','CYAN','DARK_GRAY','GRAY','GREEN','LIGHT_GRAY','MAGENTA','ORANGE','PINK',
+        //'RED','WHITE','YELLOW'
+        color = true;
+        String snippet = "";
+        //This will get the name of a valid color const.
+        String color = colorConstExpr.getText();
+        //Looking at the documentation, the below line returns a ColorTuple itself.
+        snippet += "(ColorTuple.unpack(Color."+ color+".getRGB()))";
+        //ColorTuple.unpack(Color.BLACK.getRGB());
+        //ImageOps.setColor();
+        // throw new UnsupportedOperationException("Not yet Implemented");
+        return snippet;
     }
 
     @Override
     public Object visitConsoleExpr(ConsoleExpr consoleExpr, Object arg) throws Exception {
         // (Integer) ConsoleIO.readValueFromConsole(“INT”, “Enter integer:”);
+        run = true;
         String cast = "";
         String snippet = "";
         String consoleTypeText = "";
@@ -106,8 +135,14 @@ public class CodeGenVisitor implements ASTVisitor {
 
     @Override
     public Object visitColorExpr(ColorExpr colorExpr, Object arg) throws Exception {
-        throw new UnsupportedOperationException("Not yet Implemented");
-        //return null;
+        String snippet = "";
+        color = true;
+        String red = (String) colorExpr.getRed().visit(this,null);
+        String green = (String) colorExpr.getGreen().visit(this,null);
+        String blue = (String) colorExpr.getBlue().visit(this,null);
+        snippet += "new ColorTuple("+red+", "+green+", "+blue+")";
+        //throw new UnsupportedOperationException("Not yet Implemented");
+        return snippet;
     }
 
     @Override
@@ -121,10 +156,37 @@ public class CodeGenVisitor implements ASTVisitor {
     @Override
     public Object visitBinaryExpr(BinaryExpr binaryExpr, Object arg) throws Exception {
         String op = binaryExpr.getOp().getText();
+        IToken.Kind oper = binaryExpr.getOp().getKind();
+
+        /*
+        * PLUS, MINUS, TIMES, DIV, MOD
+        *
+        * */
+        String IOPS = null;
+        switch(oper){
+            case PLUS ->{
+                IOPS = "ImageOps.OP.PLUS";
+            }
+            case MINUS -> {
+                IOPS = "ImageOps.OP.MINUS";
+            }
+            case DIV -> {
+                IOPS = "ImageOps.OP.DIV";
+            }
+            case TIMES -> {
+                IOPS = "ImageOps.OP.TIMES";
+            }
+            case MOD -> {
+                IOPS = "ImageOps.OP.MOD";
+            }
+        }
         String left = (String) binaryExpr.getLeft().visit(this, null);
         String right = (String) binaryExpr.getRight().visit(this, null);
         String snippet = "";
-        if(binaryExpr.getLeft().getType() == Types.Type.STRING || binaryExpr.getRight().getType() == Types.Type.STRING){
+        Types.Type tLeft = binaryExpr.getLeft().getType();
+        Types.Type tRight = binaryExpr.getRight().getType();
+
+        if(tLeft == Types.Type.STRING && tRight == Types.Type.STRING){
             if(op.equals("==")){
                 op = ".equals(";
             }
@@ -133,6 +195,26 @@ public class CodeGenVisitor implements ASTVisitor {
                 snippet ="(!" + left + op + right +"))";
                 return snippet;
             }
+        }
+        if(tLeft == Types.Type.IMAGE && tRight == Types.Type.IMAGE){
+            snippet += "(ImageOps.binaryImageImageOp("+ IOPS+","+left+","+right+"))";
+            //ImageOps.binaryImageScalarOp(op, left, right);
+            return snippet;
+        }
+        if(tLeft == Types.Type.IMAGE && tRight == Types.Type.INT){
+            snippet += "(ImageOps.binaryImageScalarOp("+ IOPS+","+left+","+right+"))";
+            //ImageOps.binaryImageScalarOp(op, left, right);
+            return snippet;
+        }
+        if(tLeft == Types.Type.COLOR && tRight == Types.Type.COLOR){
+            snippet += "(ImageOps.binaryTupleOp("+ IOPS+","+left+","+right+"))";
+            //ImageOps.binaryImageScalarOp(op, left, right);
+            return snippet;
+        }
+        if(tLeft == Types.Type.COLOR && tRight == Types.Type.INT){
+            snippet += "(ImageOps.binaryTupleOp("+ IOPS+","+left+", new ColorTuple("+right+")))";
+            //ImageOps.binaryImageScalarOp(op, left, right);
+            return snippet;
         }
         snippet ="(" + left + op + right +")";
         if(op.equals(".equals(")){
@@ -148,6 +230,9 @@ public class CodeGenVisitor implements ASTVisitor {
         //Check for cast
         if(identExpr.getCoerceTo() != null && identExpr.getCoerceTo() != identExpr.getType()){
             cast = "(" + identExpr.getCoerceTo().toString().toLowerCase() + ") ";
+            if(cast.equals("(color) ") || cast.equals("(image) ")){
+                cast = "";
+            }
         }
         snippet = cast + identExpr.getText();
         //program += snippet;
@@ -167,8 +252,13 @@ public class CodeGenVisitor implements ASTVisitor {
 
     @Override
     public Object visitDimension(Dimension dimension, Object arg) throws Exception {
-        throw new UnsupportedOperationException("Not yet Implemented");
-        //return null;
+        String snippet = "";
+        //Literally only returns "WIDTH, HEIGHT"
+        String width = (String) dimension.getWidth().visit(this, null);
+        String height = (String) dimension.getHeight().visit(this, null);
+        snippet += width+", "+height;
+        //throw new UnsupportedOperationException("Not yet Implemented");
+        return snippet;
     }
 
     @Override
@@ -182,11 +272,75 @@ public class CodeGenVisitor implements ASTVisitor {
         //TODO:
         //Because of type checking I assume there should be no way to have an incompatible type
         //I will chance this if necessary based on testing.
-        String snippet = assignmentStatement.getName() + "= ";
+
+        String snippet = "";
+
         String resultType = assignmentStatement.getTargetDec().getType().toString().toLowerCase();
         if(resultType.equals("string")){
             resultType = "String";
         }
+        if(resultType.equals("image") && assignmentStatement.getExpr().getType() == Types.Type.IMAGE){
+            run = true;
+            image = true;
+            if(assignmentStatement.getTargetDec().getDim() != null){
+                //We have a dimension.
+                Dimension sel = assignmentStatement.getTargetDec().getDim();
+                String x = (String) sel.getWidth().visit(this, null);
+                String y = (String) sel.getHeight().visit(this, null);
+                snippet = assignmentStatement.getName()+
+                        " = ImageOps.resize("+assignmentStatement.getExpr().visit(this, null)+","
+                        + x + "," + y + ");";
+                return snippet;
+                //ImageOps.resize(assignmentStatement.getExpr().visit(this, null),x,y);
+            }
+            else{ //We don't have a dimension.
+                snippet = assignmentStatement.getName() + " = ImageOps.clone(" +
+                        assignmentStatement.getExpr().visit(this, null) +
+                        ");";
+                //ImageOps.clone( assignmentStatement.getExpr().visit(this, null));
+
+                return snippet;
+            }
+        }
+        if(resultType.equals("image") && (assignmentStatement.getExpr().getType() == Types.Type.INT)){
+            run = true;
+            String literal = (String) assignmentStatement.getExpr().visit(this, null);
+            String name = assignmentStatement.getName();
+            snippet += "for(int i = 0; i < " + name+".getWidth(); i++){\n\t\t\t";
+            snippet += "for(int j = 0; j < " + name+".getHeight(); j++){\n\t\t\t\t";
+            snippet += "ImageOps.setColor("+ name+",i,j,"+ assignmentStatement.getExpr().visit(this,null)+");\n";
+            snippet += "\t\t\t}\n\t\t}";
+            return snippet;
+        }
+        if(resultType.equals("image") && assignmentStatement.getExpr().getType() == Types.Type.COLOR){
+            run = true;
+            String name = assignmentStatement.getName();
+            if(assignmentStatement.getSelector() == null){
+                snippet += "for(int x = 0; x < " + name+".getWidth(); x++){\n\t\t\t";
+                snippet += "for(int y = 0; y < " + name+".getHeight(); y++){\n\t\t\t\t";
+                snippet += "ImageOps.setColor("+ name+" , x, y, "+ assignmentStatement.getExpr().visit(this,null)+");\n";
+                snippet += "\t\t\t}\n\t\t}";
+                //ImageOps.setColor();
+                return snippet;
+            }
+
+            PixelSelector sel = assignmentStatement.getSelector();
+            String x = sel.getX().getText();
+            //String xVal = (String)sel.getX().visit(this, null);
+            String y = sel.getY().getText();
+
+            snippet += "for(int " + x +" = 0; "+ x + " < " + name+".getWidth(); "+ x +"++){\n\t\t\t";
+            snippet += "for(int " + y +" = 0; "+ y + " < " + name+".getHeight(); "+ y +"++){\n\t\t\t\t";
+            snippet += "ImageOps.setColor("+ name+","+x+","+ y +","+ assignmentStatement.getExpr().visit(this,null)+");\n";
+            snippet += "\t\t\t}\n\t\t}";
+            return snippet;
+
+        }
+        if(resultType.equals("image")){
+            run = true;
+            resultType = "BufferedImage";
+        }
+        snippet += assignmentStatement.getName() + "= ";
         String expr = (String) assignmentStatement.getExpr().visit(this, null);
         snippet += "(" + resultType +") " + expr + ";\n";
 
@@ -196,29 +350,83 @@ public class CodeGenVisitor implements ASTVisitor {
     @Override
     public Object visitWriteStatement(WriteStatement writeStatement, Object arg) throws Exception {
         //ConsoleIO.console.println((String) writeStatement.getSource().visit(this, null));
-        String source = (String) writeStatement.getSource().visit(this, null);
-        String snippet = "ConsoleIO.console.println("+ source +");";
+        run = true;
+        String snippet = "";
+        Types.Type src = writeStatement.getSource().getType();
+        Types.Type dest = writeStatement.getDest().getType();
+
+        if(src == Types.Type.IMAGE && dest == Types.Type.CONSOLE){
+            snippet = "ConsoleIO.displayImageOnScreen("+ writeStatement.getSource().visit(this, null) +");";
+        }
+        //Check for a string target.
+        else if(src == Types.Type.IMAGE && dest == Types.Type.STRING){
+            snippet = "FileURLIO.writeImage("+ writeStatement.getSource().visit(this, null)
+                    +","+ writeStatement.getSource().visit(this, null) + ");";
+        }
+        //Didn't find a string target - must use writeValue.
+        else if(src == Types.Type.IMAGE){
+            snippet = "FileURLIO.writeValue("+ writeStatement.getSource().visit(this, null)
+                    +","+ writeStatement.getSource().visit(this, null) + ");";
+        }
+        else { //Print to the console normally.
+            String source = (String) writeStatement.getSource().visit(this, null);
+            snippet = "ConsoleIO.console.println(" + source + ");";
+
+        }
         return snippet;
     }
 
     @Override
     public Object visitReadStatement(ReadStatement readStatement, Object arg) throws Exception {
+        run = true;
+        if(readStatement.getTargetDec().getType() == Types.Type.IMAGE){
+            String snippet = "";
+            Dimension dim = readStatement.getTargetDec().getDim();
+            String URL = (String) readStatement.getSource().visit(this, null);
+            if(dim != null) {
+                snippet += "(FileURLIO.readImage(" + URL + ", " + dim.visit(this, null) + "))";
+            }
+            else{
+                snippet +="(FileURLIO.readImage("+URL+"))";
+            }
+            return snippet;
+        }
         String snippet = readStatement.getName() + " = ";
         String expr = (String) readStatement.getSource().visit(this, null);
         snippet += expr + ";\n";
         return snippet;
     }
 
+    private String processImports(){
+        String snippet = "";
+        if(color){
+            snippet += "import java.awt.Color;\n";
+        }
+        if(run){
+            snippet += "import edu.ufl.cise.plc.runtime.*;\n";
+        }
+        if(image){
+            snippet += "import java.awt.image.BufferedImage;\n\n";
+        }
+        snippet+= "\n\n";
+        return snippet;
+    }
+
     @Override
     public Object visitProgram(Program program, Object arg) throws Exception {
         String pack = "package " + PackageName + ";\n\n";
-        String imports = "import edu.ufl.cise.plc.runtime.*;\n";
-        imports += "import edu.ufl.cise.plc.ast.*;\n\n";
-        String snippet = pack + imports;
-        snippet += "public class " + program.getName() + "{\n";
+        //String imports = "import edu.ufl.cise.plc.runtime.*;\n";
+        //imports += "import edu.ufl.cise.plc.ast.*;\n";
+        //imports += "import java.awt.Color;\n";
+        //imports += "import java.awt.image.BufferedImage;\n\n";
+        //String snippet = pack + imports;
+        String snippet = "public class " + program.getName() + "{\n";
         String returnType = program.getReturnType().toString().toLowerCase();
         if(returnType.equals("string")){
             returnType = "String";
+        }
+        if(returnType.equals("image")){
+            returnType = "BufferedImage";
         }
         snippet += "\tpublic static " + returnType + " apply(";
         List<NameDef> params = program.getParams();
@@ -236,6 +444,8 @@ public class CodeGenVisitor implements ASTVisitor {
         }
 
         snippet += "\t}\n}\n";
+        //Process imports dynamically.
+        snippet = pack + processImports() + snippet;
         return snippet;
     }
 
@@ -245,6 +455,9 @@ public class CodeGenVisitor implements ASTVisitor {
         if(type.equals("string")){
             type = "String";
         }
+        if(type.equals("image")){
+            type = "BufferedImage";
+        }
         String name = nameDef.getName();
         String snippet = type + " " + name;
         return snippet;
@@ -252,8 +465,12 @@ public class CodeGenVisitor implements ASTVisitor {
 
     @Override
     public Object visitNameDefWithDim(NameDefWithDim nameDefWithDim, Object arg) throws Exception {
-        throw new UnsupportedOperationException("Not yet Implemented");
-        //return null;
+        String snippet = "";
+        image = true;
+        String dim = (String) nameDefWithDim.getDim().visit(this, null);
+        snippet += "BufferedImage "+ nameDefWithDim.getName();
+        //throw new UnsupportedOperationException("Not yet Implemented");
+        return snippet;
     }
 
     @Override
@@ -267,17 +484,60 @@ public class CodeGenVisitor implements ASTVisitor {
     @Override
     public Object visitVarDeclaration(VarDeclaration declaration, Object arg) throws Exception {
         String snippet = (String) declaration.getNameDef().visit(this, null);
+        Dimension dim = declaration.getNameDef().getDim();
         //IToken.Kind op = declaration.getOp().getKind();
+        String resultType = declaration.getType().toString().toLowerCase();
+
+        if(resultType.equals("image") && declaration.getOp() == null){
+            image = true;
+            snippet+= " = ";
+            //This image must have a dimension by default.
+            snippet += "new BufferedImage("+ dim.visit(this, null) + ", BufferedImage.TYPE_INT_RGB)";
+        }
         if(declaration.getOp() != null){
-            snippet += "=";
-            String resultType = declaration.getType().toString().toLowerCase();
+            snippet += " = ";
             if(resultType.equals("string")){
                 resultType = "String";
+            }
+            if(resultType.equals("image")){
+                //image = true;
+                resultType = "BufferedImage";
             }
             if(declaration.getType() != declaration.getExpr().getType()){
                 snippet += "(" + resultType+")";
             }
-            snippet += "(" + (String) declaration.getExpr().visit(this, null) + ")";
+            if(declaration.getOp().getText().equals("<-")){
+                run = true;
+                String URL = (String) declaration.getExpr().visit(this, null);
+                if(dim != null) {
+                    snippet += "(FileURLIO.readImage(" + URL + ", " + dim.visit(this, null) + "))";
+                }
+                else{
+                    snippet +="(FileURLIO.readImage("+URL+"))";
+                }
+            }
+            else if(declaration.getOp().getText().equals("=") && resultType.equals("BufferedImage")){
+                image = true;
+                if(dim == null){
+                    snippet += "ImageOps.clone(" +
+                            declaration.getExpr().visit(this, null)
+                            + ");";
+                }
+                else{
+                    //snippet = "";
+                    Dimension sel = declaration.getDim();
+                    String x = (String) sel.getWidth().visit(this, null);
+                    String y = (String) sel.getHeight().visit(this, null);
+                    snippet += declaration.getName()+
+                            " = ImageOps.resize("+declaration.getExpr().visit(this, null)+","
+                            + x + "," + y + ");";
+                }
+                return snippet;
+            }
+            else{
+                snippet += "(" + (String) declaration.getExpr().visit(this, null) + ")";
+            }
+
         }
         snippet+= ";";
         return snippet;

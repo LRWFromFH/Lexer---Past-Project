@@ -517,4 +517,54 @@ class Assignment5TestStarter {
 		Object params[] = {b};
 		checkResult(input, params, false);
 	}
+
+	@Test
+	void binTest() throws Exception {
+		String input = """
+        int foo()
+        int a = 11 / 5.0;
+        ^a;
+        """;
+		checkResult(input,2);
+
+	}
+	@Test
+	void params() throws Exception {
+
+		String input = """
+           boolean foo(string a, string b)
+           ^ !(a == b);
+           """;
+		String a = "hello";
+		String b = "hello";
+		Object params[] = {a,b};
+		checkResult(input, params,false);
+	}
+	@Test
+	void binMany() throws Exception {
+		String input = """
+        int foo()
+        int a = 10 * 2.5 / 5 + 3 % 4.5 + 0.5;
+        ^a;
+        """;
+		checkResult(input,8);
+
+	}
+
+	@Test
+	void testUsingJavaKeywordAsIdent_SHOULD_ALWAYS_FAIL() throws Exception{
+		String input = """
+        boolean a()
+        int abstract = 9;
+        ^ abstract == 9;
+        """;
+		//THIS SHOULD FAIL — make sure you get the keywords
+		Exception e = assertThrows(Exception.class, () -> {
+			checkResult(input, true);
+		});
+		show("Expected Exception:     " + e);
+
+	}
+
+
 }
