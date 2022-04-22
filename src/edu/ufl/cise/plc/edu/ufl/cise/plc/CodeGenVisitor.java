@@ -186,6 +186,11 @@ public class CodeGenVisitor implements ASTVisitor {
         Types.Type tLeft = binaryExpr.getLeft().getType();
         Types.Type tRight = binaryExpr.getRight().getType();
 
+        if(binaryExpr.getLeft() instanceof UnaryExprPostfix
+                && binaryExpr.getRight() instanceof  UnaryExprPostfix){
+
+        }
+
         if(tLeft == Types.Type.STRING && tRight == Types.Type.STRING){
             if(op.equals("==")){
                 op = ".equals(";
@@ -206,12 +211,18 @@ public class CodeGenVisitor implements ASTVisitor {
             //ImageOps.binaryImageScalarOp(op, left, right);
             return snippet;
         }
-        if(tLeft == Types.Type.COLOR && tRight == Types.Type.COLOR){
+        if((binaryExpr.getLeft().getCoerceTo() == Types.Type.COLOR &&
+                binaryExpr.getRight().getCoerceTo() == Types.Type.COLOR) ||
+                (binaryExpr.getLeft().getCoerceTo() == Types.Type.COLORFLOAT &&
+                binaryExpr.getRight().getCoerceTo() == Types.Type.COLORFLOAT) ||
+                (tLeft == Types.Type.COLOR && tRight == Types.Type.COLOR) ||
+                (tLeft == Types.Type.COLORFLOAT && tRight == Types.Type.COLORFLOAT)){
             snippet += "(ImageOps.binaryTupleOp("+ IOPS+","+left+","+right+"))";
             //ImageOps.binaryImageScalarOp(op, left, right);
             return snippet;
         }
-        if(tLeft == Types.Type.COLOR && tRight == Types.Type.INT){
+        if((tLeft == Types.Type.COLOR && tRight == Types.Type.INT)||
+                tLeft == Types.Type.COLOR && tRight == Types.Type.FLOAT){
             snippet += "(ImageOps.binaryTupleOp("+ IOPS+","+left+", new ColorTuple("+right+")))";
             //ImageOps.binaryImageScalarOp(op, left, right);
             return snippet;
@@ -263,8 +274,13 @@ public class CodeGenVisitor implements ASTVisitor {
 
     @Override
     public Object visitPixelSelector(PixelSelector pixelSelector, Object arg) throws Exception {
-        throw new UnsupportedOperationException("Not yet Implemented");
-        //return null;
+        String snippet = "";
+        String x = (String) pixelSelector.getX().visit(this, null);
+        String y = (String) pixelSelector.getY().visit(this, null);
+        snippet += x+", "+y;
+
+        //throw new UnsupportedOperationException("Not yet Implemented");
+        return snippet;
     }
 
     @Override
@@ -308,7 +324,7 @@ public class CodeGenVisitor implements ASTVisitor {
             String name = assignmentStatement.getName();
             snippet += "for(int i = 0; i < " + name+".getWidth(); i++){\n\t\t\t";
             snippet += "for(int j = 0; j < " + name+".getHeight(); j++){\n\t\t\t\t";
-            snippet += "ImageOps.setColor("+ name+",i,j,"+ assignmentStatement.getExpr().visit(this,null)+");\n";
+            snippet += "ImageOps.setColor("+ name+",i,j,"+ "new ColorTuple("+assignmentStatement.getExpr().visit(this,null)+"));\n";
             snippet += "\t\t\t}\n\t\t}";
             return snippet;
         }
@@ -428,6 +444,9 @@ public class CodeGenVisitor implements ASTVisitor {
         if(returnType.equals("image")){
             returnType = "BufferedImage";
         }
+        if(returnType.equals("color")){
+            returnType = "ColorTuple";
+        }
         snippet += "\tpublic static " + returnType + " apply(";
         List<NameDef> params = program.getParams();
         String plist = "";
@@ -457,6 +476,9 @@ public class CodeGenVisitor implements ASTVisitor {
         }
         if(type.equals("image")){
             type = "BufferedImage";
+        }
+        if(type.equals("color")){
+            type = "ColorTuple";
         }
         String name = nameDef.getName();
         String snippet = type + " " + name;
@@ -488,6 +510,11 @@ public class CodeGenVisitor implements ASTVisitor {
         //IToken.Kind op = declaration.getOp().getKind();
         String resultType = declaration.getType().toString().toLowerCase();
 
+        if(resultType.equals("color")){
+            snippet += "= "+declaration.getExpr().visit(this, null)+";";
+            return snippet;
+        }
+
         if(resultType.equals("image") && declaration.getOp() == null){
             image = true;
             snippet+= " = ";
@@ -506,6 +533,7 @@ public class CodeGenVisitor implements ASTVisitor {
             if(declaration.getType() != declaration.getExpr().getType()){
                 snippet += "(" + resultType+")";
             }
+
             if(declaration.getOp().getText().equals("<-")){
                 run = true;
                 String URL = (String) declaration.getExpr().visit(this, null);
@@ -545,7 +573,16 @@ public class CodeGenVisitor implements ASTVisitor {
 
     @Override
     public Object visitUnaryExprPostfix(UnaryExprPostfix unaryExprPostfix, Object arg) throws Exception {
-        throw new UnsupportedOperationException("Not yet Implemented");
-        //return null;
+        String snippet = "";
+
+        //Ident
+        String ident = (String) unaryExprPostfix.getExpr().visit(this, null);
+        //Visit Selector to get param string.
+        String sel = (String) unaryExprPostfix.getSelector().visit(this, null);
+        //Create a ColorTuple with the Pixel Selector as params.
+        snippet += "(ColorTuple.unpack("+ ident+".getRGB("+ sel + ")))";
+
+        //throw new UnsupportedOperationException("Not yet Implemented (Unary)");
+        return snippet;
     }
 }
