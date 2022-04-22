@@ -165,14 +165,14 @@ class Assignment6StarterTest {
 		String input = """
 				image f(int widthAndHeight)
 				image[widthAndHeight, widthAndHeight] a;
-				a = 255;
+				a = 128;
 				^a;
 				""";
 		int size = 600;
 		BufferedImage refImage = new BufferedImage(size, size, BufferedImage.TYPE_INT_RGB);
 		for (int x = 0; x < size; x++) {
 			for (int y = 0; y < size; y++) {
-				refImage.setRGB(x, y, (new ColorTuple(255, 255, 255)).pack());
+				refImage.setRGB(x, y, (new ColorTuple(128, 128, 128)).pack());
 			}
 		}
 		// run PLCLang program
@@ -238,7 +238,7 @@ class Assignment6StarterTest {
 		Object[] params = { size };
 		show(check(input, params, refImage));
 	}
-
+/*
 	@Test
 	void lectureExample_01() throws Exception {
 		String input = """
@@ -258,7 +258,7 @@ class Assignment6StarterTest {
 		Object[] params = { size };
 		show(check(input, params, 63351));
 	}
-
+*/
 	@Test
 	void lectureExample6() throws Exception {
 		String input = """
@@ -285,7 +285,7 @@ class Assignment6StarterTest {
 		//this image should be the same size, but darker than inputImage
 		show(check(input, params, refImage));
 	}
-	
+
 	
 
 
@@ -324,6 +324,152 @@ class Assignment6StarterTest {
 		show(check(input, refImage));
 	}
 
+	@Test
+	void colorBool() throws Exception {
+		String input = """
+				boolean f()
+				color a = <<50,60,70>>;
+				color b = <<13,14,15>>;
+				^ a == b;
+				""";
+		check(input, false);
+		String input2 = """
+				boolean f()
+				color a = <<50,60,70>>;
+				color b = <<13,14,15>>;
+				^ a != b;
+				""";
+		check(input2, true);
+	}
 
+	@Test
+	void testAssigningOneValueToImage() throws Exception{
+		String input = """
+        image f()
+              image[500, 500] b;
+              b = 100;
+              ^b;
+        """;
+		int w = 500;
+		int h = 500;
+		int size = w*h;
+		BufferedImage refImage = new BufferedImage(w,h,BufferedImage.TYPE_INT_RGB);
+		int[] rgbArray = new int[size];
+		Color hundred = new Color(100, 100, 100);
+		Arrays.fill(rgbArray, hundred.getRGB());
+		refImage.setRGB(0, 0, w,h, rgbArray, 0, w);
+		show(check(input, refImage));
+	}
+
+	@Test
+	void testAssigningOneColorToImage() throws Exception{
+		String input = """
+        image f()
+              image[500, 500] b;
+              b = BLUE;
+              ^b;
+        """;
+		int w = 500;
+		int h = 500;
+		int size = w*h;
+		BufferedImage refImage = new BufferedImage(w,h,BufferedImage.TYPE_INT_RGB);
+		int blue = Color.BLUE.getRGB();
+		int[] rgbArray = new int[size];
+		Arrays.fill(rgbArray, blue);
+		refImage.setRGB(0, 0, w,h, rgbArray, 0, w);
+		ConsoleIO.displayReferenceImageOnScreen(refImage);
+		show(check(input, refImage));
+	}
+
+	@Test
+	void testAssignImageToImageWithDimension() throws Exception{
+		String input = """
+        image f()
+              image[500, 500] b;
+              b = BLUE;
+              image[200, 200] c;
+              c = b;
+              ^c;
+        """;
+		int w = 200;
+		int h = 200;
+		int size = w*h;
+		BufferedImage refImage = new BufferedImage(w,h,BufferedImage.TYPE_INT_RGB);
+		int blue = Color.BLUE.getRGB();
+		//int blue = ColorTuple.toColorTuple(Color.BLUE).pack(); //if above one doesn't work
+		int[] rgbArray = new int[size];
+		Arrays.fill(rgbArray, blue);
+		refImage.setRGB(0, 0, w,h, rgbArray, 0, w);
+		//ConsoleIO.displayReferenceImageOnScreen(refImage);
+		show(check(input, refImage));
+	}
+
+	/*
+	@Test
+	void testAssignImageToImageWithoutDimension() throws Exception{
+		String input = """
+        image f(string url)
+              image b <- url;
+              image[300, 300] c = RED;
+              b = c;
+              ^c;
+        """;
+		int w = 300;
+		int h = 300;
+		int size = w*h;
+		BufferedImage refImage = new BufferedImage(w,h,BufferedImage.TYPE_INT_RGB);
+		int blue = Color.RED.getRGB();
+		//int blue = ColorTuple.toColorTuple(Color.BLUE).pack(); //if above one doesn't work
+		int[] rgbArray = new int[size];
+		Arrays.fill(rgbArray, blue);
+		refImage.setRGB(0, 0, w,h, rgbArray, 0, w);
+		//ConsoleIO.displayReferenceImageOnScreen(refImage);
+		String url = "https://upload.wikimedia.org/wikipedia/commons/9/92/Albert_and_Alberta.jpg";
+		Object[] params = {url};
+		//this image should be the same size, but darker than inputImage
+		show(check(input, params, refImage));
+	}*/
+
+	@Test
+	void readColorFromConsole() throws Exception{
+		String input = """
+        image f()
+              image[500, 500] b;
+              color x;
+              x <- console;
+              b = x;
+              ^b;
+        """;
+		int w = 500;
+		int h = 500;
+		int size = w*h;
+		BufferedImage refImage = new BufferedImage(w,h,BufferedImage.TYPE_INT_RGB);
+		int blue = Color.BLUE.getRGB();
+		//int blue = ColorTuple.toColorTuple(Color.BLUE).pack(); //if above one doesn't work
+		int[] rgbArray = new int[size];
+		Color hundred = new Color(100, 200, 100);
+		Arrays.fill(rgbArray, hundred.getRGB());
+		refImage.setRGB(0, 0, w,h, rgbArray, 0, w);
+		//ConsoleIO.displayReferenceImageOnScreen(refImage);
+		show(check(input, refImage));
+	}
+
+	@Test
+	void testDeclaringOneValueToImage() throws Exception{
+		String input = """
+      image f()
+            image[500, 500] b = 100;
+            ^b;
+      """;
+		int w = 500;
+		int h = 500;
+		int size = w*h;
+		BufferedImage refImage = new BufferedImage(w,h,BufferedImage.TYPE_INT_RGB);
+		int[] rgbArray = new int[size];
+		Color hundred = new Color(100, 100, 100);
+		Arrays.fill(rgbArray, hundred.getRGB());
+		refImage.setRGB(0, 0, w,h, rgbArray, 0, w);
+		show(check(input, refImage));
+	}
 
 }
