@@ -472,4 +472,70 @@ class Assignment6StarterTest {
 		show(check(input, refImage));
 	}
 
+	@Test
+	void testBinaryImageImageOp() throws Exception {
+		String input = """
+				image f()
+				    image[300, 300] a = RED;
+				        	image[300, 300] b = BLUE;
+				        	image c = a+b;
+				        	^c;
+				""";
+
+		int w = 300;
+		int h = 300;
+		int size = w * h;
+		BufferedImage image1 = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
+		BufferedImage image2 = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
+
+		int red = Color.RED.getRGB();
+		int blue = Color.BLUE.getRGB();
+		int[] rgbRedArray = new int[size];
+		int[] rgbBlueArray = new int[size];
+		Arrays.fill(rgbRedArray, red);
+		Arrays.fill(rgbBlueArray, blue);
+		image1.setRGB(0, 0, w, h, rgbRedArray, 0, w);
+		image2.setRGB(0, 0, w, h, rgbBlueArray, 0, w);
+
+		BufferedImage refImage = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
+		for (int x = 0; x < w; x++)
+			for (int y = 0; y < h; y++) {
+				ColorTuple pixel1 = ColorTuple.unpack(image1.getRGB(x, y));
+				ColorTuple pixel2 = ColorTuple.unpack(image2.getRGB(x, y));
+				int newPackedPixel = (new ColorTuple(pixel1.red + pixel2.red, pixel1.green + pixel2.green,
+						pixel1.blue + pixel2.blue)).pack();
+				refImage.setRGB(x, y, newPackedPixel);
+			}
+		ConsoleIO.displayReferenceImageOnScreen(image1);
+		ConsoleIO.displayReferenceImageOnScreen(image2);
+
+		show(check(input, null, refImage));
+	}
+
+	@Test
+	void testImageEqualsTrue() throws Exception {
+		String input = """
+				boolean f()
+				    image[300, 300] a = RED;
+				      	image[300, 300] b = RED;
+				      	^ a == b;
+				""";
+
+		int w = 300;
+		int h = 300;
+		int size = w * h;
+		BufferedImage image1 = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
+		BufferedImage image2 = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
+
+		int red = Color.RED.getRGB();
+		int[] rgbRedArray = new int[size];
+		Arrays.fill(rgbRedArray, red);
+		image1.setRGB(0, 0, w, h, rgbRedArray, 0, w);
+		image2.setRGB(0, 0, w, h, rgbRedArray, 0, w);
+
+		ConsoleIO.displayReferenceImageOnScreen(image1);
+		ConsoleIO.displayReferenceImageOnScreen(image2);
+
+		check(input, true);
+	}
 }
